@@ -98,28 +98,22 @@
 // });
 import { useEffect } from "react";
 import { Text, View } from "react-native";
-import 'react-native-get-random-values';
-import { v4 as uuidv4 } from "uuid";
-import { PatientRepository } from "../../src/infraestructure/repositories/PatientRepository";
+// import { PatientRepository } from "../../src/infraestructure/repositories/PatientRepository";
+import { PatientService } from "../../src/application/services/PatientService";
 
 export default function HomeScreen() {
   useEffect(() => {
-    const repo = new PatientRepository();
-    const now = new Date().toISOString();
+    const service = new PatientService();
 
-    repo.create({
-      id: uuidv4(),
-      name: "Paciente TEST",
+    const result = service.createPatient({
+      name: "Paciente Service",
       phone: "123456789",
-      email: undefined,
-      notes: undefined,
-      createdAt: now,
-      updatedAt: now,
-      isDeleted: false
-    });
+    })
 
-    const patients = repo.findAll();
-    console.log("Paciente Insertado: ", patients);
+    console.log("Resultado: ", result);
+
+    const patients = service.getAllPatients();
+    console.log("Lista: ", patients);
   }, []);
 
   return (
