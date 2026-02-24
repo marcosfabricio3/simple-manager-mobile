@@ -1,124 +1,106 @@
-// import { Image } from 'expo-image';
-// import { Platform, StyleSheet } from 'react-native';
+import { RecordService } from "@/src/application/services/RecordService";
+import { Record } from "@/src/domain/entities/Record";
+import { useEffect, useState } from "react";
+import { Button, FlatList, StyleSheet, Text, TextInput, View } from "react-native";
 
-// import { HelloWave } from '@/components/hello-wave';
-// import ParallaxScrollView from '@/components/parallax-scroll-view';
-// import { ThemedText } from '@/components/themed-text';
-// import { ThemedView } from '@/components/themed-view';
-// import { Link } from 'expo-router';
+export default function RecordsScreen() {
+  const service = new RecordService();
 
-// export default function HomeScreen() {
-//   return (
-//     <ParallaxScrollView
-//       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-//       headerImage={
-//         <Image
-//           source={require('@/assets/images/partial-react-logo.png')}
-//           style={styles.reactLogo}
-//         />
-//       }>
-//       <ThemedView style={styles.titleContainer}>
-//         <ThemedText type="title">Welcome!</ThemedText>
-//         <HelloWave />
-//       </ThemedView>
-//       <ThemedView style={styles.stepContainer}>
-//         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-//         <ThemedText>
-//           Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-//           Press{' '}
-//           <ThemedText type="defaultSemiBold">
-//             {Platform.select({
-//               ios: 'cmd + d',
-//               android: 'cmd + m',
-//               web: 'F12',
-//             })}
-//           </ThemedText>{' '}
-//           to open developer tools.
-//         </ThemedText>
-//       </ThemedView>
-//       <ThemedView style={styles.stepContainer}>
-//         <Link href="/modal">
-//           <Link.Trigger>
-//             <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-//           </Link.Trigger>
-//           <Link.Preview />
-//           <Link.Menu>
-//             <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-//             <Link.MenuAction
-//               title="Share"
-//               icon="square.and.arrow.up"
-//               onPress={() => alert('Share pressed')}
-//             />
-//             <Link.Menu title="More" icon="ellipsis">
-//               <Link.MenuAction
-//                 title="Delete"
-//                 icon="trash"
-//                 destructive
-//                 onPress={() => alert('Delete pressed')}
-//               />
-//             </Link.Menu>
-//           </Link.Menu>
-//         </Link>
+  const [title, setTitle] = useState("");
+  const [type, setType] = useState("");
+  const [records, setRecords] = useState<Record[]>([]);
 
-//         <ThemedText>
-//           {`Tap the Explore tab to learn more about what's included in this starter app.`}
-//         </ThemedText>
-//       </ThemedView>
-//       <ThemedView style={styles.stepContainer}>
-//         <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-//         <ThemedText>
-//           {`When you're ready, run `}
-//           <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-//           <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-//           <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-//           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-//         </ThemedText>
-//       </ThemedView>
-//     </ParallaxScrollView>
-//   );
-// }
+  const loadRecords = async () => {
+    const data = await service.list();
+    setRecords(data);
+  };
 
-// const styles = StyleSheet.create({
-//   titleContainer: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     gap: 8,
-//   },
-//   stepContainer: {
-//     gap: 8,
-//     marginBottom: 8,
-//   },
-//   reactLogo: {
-//     height: 178,
-//     width: 290,
-//     bottom: 0,
-//     left: 0,
-//     position: 'absolute',
-//   },
-// });
-import { useEffect } from "react";
-import { Text, View } from "react-native";
-// import { PatientRepository } from "../../src/infraestructure/repositories/PatientRepository";
-import { PatientService } from "../../src/application/services/PatientService";
+  const handleCreate = async () => {
+    if (!title || !type) return;
 
-export default function HomeScreen() {
+    await service.create(title, type);
+
+    setTitle("");
+    setType("");
+
+    loadRecords();
+  };
+
+  const handleDelete = async (id: string) => {
+    await service.delete(id);
+    loadRecords();
+  }
+
   useEffect(() => {
-    const service = new PatientService();
-
-    const result = service.createPatient({
-      name: "Paciente Service",
-      phone: "123456789",
-    })
-
-    console.log("Resultado: ", result);
-
-    const patients = service.getAllPatients();
-    console.log("Lista: ", patients);
+    loadRecords();
   }, []);
 
   return (
-    <View>
-      <Text>Clinic Manager</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Simple Manager</Text>
+
+      <TextInput
+        placeholder="Title"
+        value={title}
+        onChangeText={setTitle}
+        style={styles.input}
+      />
+
+      <TextInput
+        placeholder="Type"
+        value={type}
+        onChangeText={setType}
+        style={styles.input}
+      />
+
+      <Button title="Guardar" onPress={handleCreate} />
+
+      <FlatList
+        data={records}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text>Type: {item.type}</Text>
+
+            <Button
+              title="Eliminar"
+              onPress={() => handleDelete(item.id)}
+            />
+
+          </View>
+        )}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    marginTop: 40,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 6,
+  },
+  card: {
+    padding: 15,
+    borderWidth: 1,
+    borderColor: "#eee",
+    borderRadius: 6,
+    marginTop: 10,
+  },
+  cardTitle: {
+    fontWeight: "bold",
+  },
+});
