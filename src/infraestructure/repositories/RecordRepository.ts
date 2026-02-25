@@ -43,4 +43,27 @@ export class RecordRepository {
             [id]
         );
     }
+
+    async update(record: Record) {
+        await db.runAsync(`
+            UPDATE records SET
+                title = ?,
+                subtitle = ?,
+                metadata = ?,
+                type = ?,
+                userId = ?,
+                updatedAt = ?
+            WHERE id = ?
+            `,
+            [
+                record.title,
+                record.subtitle ?? null,
+                record.metadata ?? null,
+                record.type,
+                record.userId ?? null,
+                record.updatedAt,
+                record.id,
+            ]
+        );
+    }
 }

@@ -30,4 +30,9 @@ export class RecordService {
         await this.repository.softDelete(id);
     }
 
+    async update(record: Record) {
+        record.updatedAt = new Date().toISOString();
+        await this.repository.update(record);
+    }
+
 }
