@@ -1,4 +1,5 @@
 import { useToast } from "@/components/context/ToastContext";
+import { validateRecord } from "@/src/application/validators/recordValidator";
 import { Record } from "@/src/domain/entities/Record";
 import { RecordCard } from "@/src/presentation/components/RecordCard";
 import { useRecords } from "@/src/presentation/hooks/useRecords";
@@ -6,7 +7,7 @@ import { useState } from "react";
 import { Button, FlatList, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function RecordsScreen() {
-    const { records, create, remove, update } = useRecords();
+    const { records, create, remove, update, existsByTitle } = useRecords();
 
     const [title, setTitle] = useState("");
     const [type, setType] = useState("");
@@ -14,23 +15,35 @@ export default function RecordsScreen() {
     const { addToast } = useToast();
 
     const handleSubmit = async () => {
-        if (!title || !type) {
-            addToast("Todos los campos son obligatorios", "warning");
+        const result = validateRecord(title, type);
+        if (!result.valid) {
+            addToast(result.message!, "warning");
             return;
-        };
+        }
+
+        const cleanTitle = title.trim();
+        const cleanType = type.trim();
+
+        if (!editing) {
+            const exists = await existsByTitle(cleanTitle);
+            if (exists) {
+                addToast("Ya existe un registro con ese titulo", "warning");
+                return;
+            }
+        }
 
         try {
             if (editing) {
                 await update({
                     ...editing,
-                    title,
-                    type,
+                    title: cleanTitle,
+                    type: cleanType,
                 });
 
                 addToast("Registro actualizado correctamente", "success");
                 setEditing(null);
             } else {
-                await create(title, type);
+                await create(cleanTitle, cleanType);
                 addToast("Registro creado correctamente", "success");
             }
 
@@ -38,7 +51,10 @@ export default function RecordsScreen() {
             setType("");
         }
         catch (error) {
-            addToast("Error al guardar el registro", "error");
+            addToast(
+                error instanceof Error ? error.message : "Error inesperado",
+                "error"
+            );
         }
 
     };
@@ -54,8 +70,11 @@ export default function RecordsScreen() {
             await remove(id);
             addToast("Registro eliminado correctamente", "info");
         }
-        catch {
-            addToast("Error al eliminar el registro", "error");
+        catch (error) {
+            addToast(
+                error instanceof Error ? error.message : "Error inesperado",
+                "error"
+            );
         }
     };
 

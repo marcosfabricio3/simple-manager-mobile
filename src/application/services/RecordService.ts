@@ -6,6 +6,7 @@ export class RecordService {
     private repository = new RecordRepository();
 
     async create(title: string, type: string) {
+
         const now = new Date().toISOString();
 
         const record: Record = {
@@ -33,6 +34,11 @@ export class RecordService {
     async update(record: Record) {
         record.updatedAt = new Date().toISOString();
         await this.repository.update(record);
+    }
+
+    async existsByTitle(title: string): Promise<boolean> {
+        const records = await this.repository.findAll();
+        return records.some(r => r.title.toLowerCase() === title.toLowerCase());
     }
 
 }
