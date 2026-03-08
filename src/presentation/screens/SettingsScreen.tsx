@@ -2,16 +2,14 @@ import { SettingsItem } from "@/src/presentation/components/SettingsItem";
 import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { router } from "expo-router";
+
 export default function SettingsScreen() {
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
 
   const handleServicesNav = () => {
-    // Phase 3 implementation
-    Alert.alert(
-      "Módulo de Servicios",
-      "La gestión de servicios estará disponible en la Fase 3.",
-    );
+    router.push("/settings/services");
   };
 
   const handleWipeData = () => {
