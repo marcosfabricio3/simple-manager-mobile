@@ -1,4 +1,5 @@
 export type AppointmentStatus = "pending" | "cancelled" | "completed";
+export type PaymentStatus = "paid" | "unpaid";
 
 export interface Appointment {
   id: string;
@@ -6,6 +7,7 @@ export interface Appointment {
   date: string;
   durationMinutes: number;
   status: AppointmentStatus;
+  paymentStatus: PaymentStatus;
   createdAt: string;
   updatedAt: string;
   isDeleted: boolean;

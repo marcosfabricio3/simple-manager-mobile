@@ -42,6 +42,7 @@ export function initDatabase() {
             date TEXT NOT NULL,
             durationMinutes INTEGER NOT NULL,
             status TEXT NOT NULL,
+            paymentStatus TEXT NOT NULL DEFAULT 'unpaid',
             notes TEXT,
             createdAt TEXT NOT NULL,
             updatedAt TEXT NOT NULL,
@@ -59,4 +60,13 @@ export function initDatabase() {
             FOREIGN KEY (serviceId) REFERENCES services(id)
         );
     `);
+
+  // Silent Migration
+  try {
+    db.execSync(
+      `ALTER TABLE appointments ADD COLUMN paymentStatus TEXT NOT NULL DEFAULT 'unpaid';`,
+    );
+  } catch (e) {
+    // Column already exists, safe to ignore.
+  }
 }

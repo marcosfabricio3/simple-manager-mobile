@@ -1,18 +1,19 @@
 import { useToast } from "@/components/context/ToastContext";
 import { Client } from "@/src/domain/entities/Client";
+import { ClientProfileModal } from "@/src/presentation/components/ClientProfileModal";
 import { useClients } from "@/src/presentation/hooks/useClients";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
-    Alert,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function ClientsScreen() {
@@ -24,6 +25,9 @@ export default function ClientsScreen() {
   const [editing, setEditing] = useState<Client | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [selectedClientForProfile, setSelectedClientForProfile] =
+    useState<Client | null>(null);
 
   const { addToast } = useToast();
 
@@ -183,7 +187,11 @@ export default function ClientsScreen() {
           <Text style={styles.emptyText}>No hay clientes registrados.</Text>
         }
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => setSelectedClientForProfile(item)}
+            activeOpacity={0.7}
+          >
             <View style={styles.cardInfo}>
               <Text style={styles.cardTitle}>{item.name}</Text>
               <Text style={styles.cardSubtitle}>
@@ -206,8 +214,14 @@ export default function ClientsScreen() {
                 <MaterialIcons name="delete" size={20} color="#FF3B30" />
               </TouchableOpacity>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
+      />
+
+      <ClientProfileModal
+        client={selectedClientForProfile}
+        visible={!!selectedClientForProfile}
+        onClose={() => setSelectedClientForProfile(null)}
       />
     </KeyboardAvoidingView>
   );

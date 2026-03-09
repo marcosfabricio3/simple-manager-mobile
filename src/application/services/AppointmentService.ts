@@ -47,6 +47,7 @@ export class AppointmentService {
       date: dateIsoString,
       durationMinutes,
       status: "pending",
+      paymentStatus: "unpaid",
       notes: notes?.trim() || "",
       createdAt: now,
       updatedAt: now,
@@ -54,7 +55,6 @@ export class AppointmentService {
     };
 
     // 3. Persist atomically
-    await this.appointmentRepo.create(appointment, serviceIds);
     await this.appointmentRepo.create(appointment, serviceIds);
   }
 
@@ -76,12 +76,13 @@ export class AppointmentService {
     const now = new Date().toISOString();
 
     const appointment: Appointment = {
-      id: Crypto.randomUUID(),
-      clientId: clientId,
+      id: Math.random().toString(36).substring(2, 15), // fallback uuid
+      clientId: clientId, // Use the proper ID
       date: dateIsoString,
       durationMinutes,
       status: "pending",
-      notes: notes?.trim() || "",
+      paymentStatus: "unpaid",
+      notes: notes,
       createdAt: now,
       updatedAt: now,
       isDeleted: false,
@@ -104,5 +105,9 @@ export class AppointmentService {
 
   async delete(id: string) {
     await this.appointmentRepo.softDelete(id);
+  }
+
+  async updatePaymentStatus(id: string, status: "paid" | "unpaid") {
+    await this.appointmentRepo.updatePaymentStatus(id, status);
   }
 }
