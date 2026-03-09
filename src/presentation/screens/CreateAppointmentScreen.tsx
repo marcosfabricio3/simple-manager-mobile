@@ -1,27 +1,33 @@
 import { useToast } from "@/components/context/ToastContext";
+import { Client } from "@/src/domain/entities/Client";
+import { ClientSelector } from "@/src/presentation/components/ClientSelector";
 import { useAppointments } from "@/src/presentation/hooks/useAppointments";
+import { useClients } from "@/src/presentation/hooks/useClients";
 import { useServices } from "@/src/presentation/hooks/useServices";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    Button,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Button,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function CreateAppointmentScreen() {
-  const { create } = useAppointments();
-  const { services } = useServices(); // to populate the checklist
+  const { createWithExisting } = useAppointments();
+  const { services } = useServices();
+  const { clients, load: loadClients } = useClients();
   const { addToast } = useToast();
 
-  const [clientName, setClientName] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<
+    string | undefined
+  >();
+
   const [dateStr, setDateStr] = useState(""); // Simplified to string literal for MVP without DatePicker library
   const [timeStr, setTimeStr] = useState(""); // Format HH:mm
   const [duration, setDuration] = useState("60"); // Default 1 hr
@@ -54,9 +60,14 @@ export default function CreateAppointmentScreen() {
         throw new Error("Duración inválida");
       }
 
-      await create(
-        clientName,
-        clientPhone,
+      if (!selectedClientId) {
+        throw new Error(
+          "Por favor, selecciona o crea un cliente para el turno.",
+        );
+      }
+
+      await createWithExisting(
+        selectedClientId,
         combinedDate.toISOString(),
         durNum,
         selectedServices,
@@ -79,19 +90,11 @@ export default function CreateAppointmentScreen() {
     >
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Datos del Cliente</Text>
-          <TextInput
-            placeholder="Nombre completo *"
-            value={clientName}
-            onChangeText={setClientName}
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="Teléfono *"
-            value={clientPhone}
-            onChangeText={setClientPhone}
-            keyboardType="phone-pad"
-            style={styles.input}
+          <ClientSelector
+            clients={clients}
+            selectedClientId={selectedClientId}
+            onSelectClient={(c: Client) => setSelectedClientId(c.id)}
+            onClientCreated={loadClients}
           />
         </View>
 

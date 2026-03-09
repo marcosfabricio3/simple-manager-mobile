@@ -55,6 +55,39 @@ export class AppointmentService {
 
     // 3. Persist atomically
     await this.appointmentRepo.create(appointment, serviceIds);
+    await this.appointmentRepo.create(appointment, serviceIds);
+  }
+
+  /**
+   * Creates an appointment linking it to an already existing client.
+   */
+  async createWithExistingClient(
+    clientId: string,
+    dateIsoString: string,
+    durationMinutes: number,
+    serviceIds: string[],
+    notes?: string,
+  ) {
+    if (!clientId) throw new Error("Debes seleccionar un cliente válido.");
+    if (!dateIsoString) throw new Error("Fecha del turno es requerida.");
+    if (serviceIds.length === 0)
+      throw new Error("Debes seleccionar al menos un servicio.");
+
+    const now = new Date().toISOString();
+
+    const appointment: Appointment = {
+      id: Crypto.randomUUID(),
+      clientId: clientId,
+      date: dateIsoString,
+      durationMinutes,
+      status: "pending",
+      notes: notes?.trim() || "",
+      createdAt: now,
+      updatedAt: now,
+      isDeleted: false,
+    };
+
+    await this.appointmentRepo.create(appointment, serviceIds);
   }
 
   async listUpcoming() {

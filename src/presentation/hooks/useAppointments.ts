@@ -22,7 +22,28 @@ export function useAppointments() {
     }
   }, [serviceManager]);
 
-  const create = async (
+  const createWithExisting = async (
+    clientId: string,
+    dateIsoString: string,
+    durationMinutes: number,
+    serviceIds: string[],
+    notes?: string,
+  ) => {
+    try {
+      await serviceManager.createWithExistingClient(
+        clientId,
+        dateIsoString,
+        durationMinutes,
+        serviceIds,
+        notes,
+      );
+      await load();
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  };
+
+  const createNewClientAndAppt = async (
     clientName: string,
     clientPhone: string,
     dateIsoString: string,
@@ -39,7 +60,7 @@ export function useAppointments() {
         serviceIds,
         notes,
       );
-      await load(); // refresh local list
+      await load();
     } catch (error) {
       throw new Error(getErrorMessage(error));
     }
@@ -62,7 +83,8 @@ export function useAppointments() {
     appointments,
     loading,
     load,
-    create,
+    createWithExisting,
+    createNewClientAndAppt,
     remove,
   };
 }
