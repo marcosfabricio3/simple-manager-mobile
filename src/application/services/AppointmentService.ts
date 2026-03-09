@@ -61,6 +61,14 @@ export class AppointmentService {
     return await this.appointmentRepo.findUpcoming();
   }
 
+  async listToday() {
+    return await this.appointmentRepo.findToday();
+  }
+
+  async getRevenueToday(): Promise<number> {
+    return await this.appointmentRepo.calculateRevenueToday();
+  }
+
   async delete(id: string) {
     await this.appointmentRepo.softDelete(id);
   }

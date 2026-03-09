@@ -1,1 +1,1 @@
-export { default } from "@/src/presentation/screens/RecordsScreen";
+export { default } from "@/src/presentation/screens/DashboardScreen";

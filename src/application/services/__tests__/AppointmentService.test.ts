@@ -80,4 +80,20 @@ describe("AppointmentService (Application Layer)", () => {
 
     expect(mockClientRepoCreate).not.toHaveBeenCalled();
   });
+
+  it("should return today's list and revenue by delegating to repository", async () => {
+    const mockApptRepoToday = jest
+      .spyOn(AppointmentRepository.prototype, "findToday")
+      .mockResolvedValue([]);
+    const mockApptRepoRev = jest
+      .spyOn(AppointmentRepository.prototype, "calculateRevenueToday")
+      .mockResolvedValue(1500);
+
+    await service.listToday();
+    expect(mockApptRepoToday).toHaveBeenCalled();
+
+    const rev = await service.getRevenueToday();
+    expect(mockApptRepoRev).toHaveBeenCalled();
+    expect(rev).toBe(1500);
+  });
 });

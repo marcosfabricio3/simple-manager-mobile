@@ -110,4 +110,64 @@ export class AppointmentRepository {
       id,
     ]);
   }
+
+  async findToday(): Promise<AppointmentWithDetails[]> {
+    // Uses date() function in SQLite to match local ISO string slices
+    const rows = await db.getAllAsync<any>(`
+        SELECT 
+            a.*,
+            c.name as clientName,
+            c.phone as clientPhone,
+            IFNULL(
+                (
+                    SELECT json_group_array(
+                        json_object(
+                            'id', s.id,
+                            'name', s.name,
+                            'color', s.color,
+                            'price', s.defaultPrice
+                        )
+                    )
+                    FROM appointment_services asPivot
+                    JOIN services s ON asPivot.serviceId = s.id
+                    WHERE asPivot.appointmentId = a.id
+                ), '[]'
+            ) as servicesJson
+        FROM appointments a
+        JOIN clients c ON a.clientId = c.id
+        WHERE a.isDeleted = 0 
+          AND date(a.date) = date('now', 'localtime')
+        ORDER BY a.date ASC
+    `);
+
+    return rows.map((r): AppointmentWithDetails => {
+      const services = JSON.parse(r.servicesJson);
+      const totalPrice = services.reduce(
+        (sum: number, s: any) => sum + s.price,
+        0,
+      );
+
+      return {
+        id: r.id,
+        clientId: r.clientId,
+        date: r.date,
+        durationMinutes: r.durationMinutes,
+        status: r.status,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        isDeleted: Boolean(r.isDeleted),
+        notes: r.notes,
+        clientName: r.clientName,
+        clientPhone: r.clientPhone,
+        services,
+        totalPrice,
+      };
+    });
+  }
+
+  async calculateRevenueToday(): Promise<number> {
+    const todayAppointments = await this.findToday();
+    // Sum all appointment totals
+    return todayAppointments.reduce((sum, appt) => sum + appt.totalPrice, 0);
+  }
 }

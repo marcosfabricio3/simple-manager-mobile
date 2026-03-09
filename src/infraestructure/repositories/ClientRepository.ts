@@ -45,4 +45,11 @@ export class ClientRepository {
       isDeleted: Boolean(row.isDeleted),
     };
   }
+
+  async countTotal(): Promise<number> {
+    const row = await db.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM clients WHERE isDeleted = 0`,
+    );
+    return row?.count || 0;
+  }
 }
