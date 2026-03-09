@@ -15,4 +15,13 @@ export class ClientService {
   async listAll() {
     return await this.repository.findAll();
   }
+
+  async update(client: Client): Promise<void> {
+    client.updatedAt = new Date().toISOString();
+    await this.repository.update(client);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.repository.softDelete(id);
+  }
 }

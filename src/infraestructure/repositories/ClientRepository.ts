@@ -52,4 +52,21 @@ export class ClientRepository {
     );
     return row?.count || 0;
   }
+
+  async update(client: Client): Promise<void> {
+    await db.runAsync(
+      `UPDATE clients SET name = ?, phone = ?, notes = ?, updatedAt = ? WHERE id = ?`,
+      [
+        client.name,
+        client.phone,
+        client.notes || null,
+        client.updatedAt,
+        client.id,
+      ],
+    );
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await db.runAsync(`UPDATE clients SET isDeleted = 1 WHERE id = ?`, [id]);
+  }
 }

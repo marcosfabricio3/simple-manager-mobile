@@ -1,5 +1,5 @@
-import RecordsScreen from "@/src/presentation/screens/RecordsScreen";
+import ClientsScreen from "@/src/presentation/screens/ClientsScreen";
 
 export default function ClientsTab() {
-  return <RecordsScreen />;
+  return <ClientsScreen />;
 }
