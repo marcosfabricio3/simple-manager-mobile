@@ -4,6 +4,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { router } from "expo-router";
 
+import { db } from "@/src/infraestructure/database/database";
 export default function SettingsScreen() {
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
@@ -20,7 +21,28 @@ export default function SettingsScreen() {
         { text: "Cancelar", style: "cancel" },
         {
           text: "Borrar",
-          onPress: () => console.log("Wiping DB base..."),
+          onPress: async () => {
+            try {
+              // Delete tables to force a recreation on next load
+              await db.execAsync(`
+                PRAGMA foreign_keys = OFF;
+                DROP TABLE IF EXISTS appointment_services;
+                DROP TABLE IF EXISTS appointments;
+                DROP TABLE IF EXISTS services;
+                DROP TABLE IF EXISTS clients;
+                DROP TABLE IF EXISTS records;
+                PRAGMA foreign_keys = ON;
+              `);
+              Alert.alert(
+                "Éxito",
+                "Plataforma reiniciada. Cierra y vuelve a abrir la app entera.",
+                [{ text: "Entendido" }],
+              );
+            } catch (error) {
+              console.error(error);
+              Alert.alert("Error", "No se pudo limpiar la base de datos.");
+            }
+          },
           style: "destructive",
         },
       ],
