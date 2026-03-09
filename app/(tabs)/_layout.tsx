@@ -29,19 +29,34 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Explore",
+          title: "Turnos",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="calendar" color={color} />
           ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: "Ajustes",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="gearshape.fill" color={color} />
           ),
+        }}
+      />
+      {/* Hide nested routes from the bottom tabs bar */}
+      <Tabs.Screen
+        name="settings/services"
+        options={{
+          href: null,
+          title: "Mis Servicios",
+        }}
+      />
+      <Tabs.Screen
+        name="appointments/create"
+        options={{
+          href: null,
+          title: "Nuevo Turno",
         }}
       />
     </Tabs>
