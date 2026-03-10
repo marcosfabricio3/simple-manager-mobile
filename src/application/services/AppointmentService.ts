@@ -1,12 +1,34 @@
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { Appointment } from "@/src/domain/entities/Appointment";
 import { Client } from "@/src/domain/entities/Client";
 import { AppointmentRepository } from "@/src/infraestructure/repositories/AppointmentRepository";
 import { ClientRepository } from "@/src/infraestructure/repositories/ClientRepository";
+import { ExpoNotificationService } from "@/src/infrastructure/services/ExpoNotificationService";
 import * as Crypto from "expo-crypto";
 
 export class AppointmentService {
   private appointmentRepo = new AppointmentRepository();
   private clientRepo = new ClientRepository();
+  private notificationService = new ExpoNotificationService();
+
+  private async scheduleReminder(appointment: Appointment, clientName: string) {
+    const { notificationsEnabled, notificationAdvanceMin } =
+      useSettingsStore.getState();
+
+    if (!notificationsEnabled) {
+      return; // Do not schedule if user disabled notifications globally
+    }
+
+    const triggerDate = new Date(appointment.date);
+    triggerDate.setMinutes(triggerDate.getMinutes() - notificationAdvanceMin);
+
+    await this.notificationService.scheduleNotificationAsync(
+      appointment.id,
+      "Turno Próximo",
+      `Tienes un turno con ${clientName} a las ${triggerDate.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`,
+      triggerDate,
+    );
+  }
 
   /**
    * Creates an appointment. Creates the client on the fly if it doesn't exist.
@@ -56,6 +78,9 @@ export class AppointmentService {
 
     // 3. Persist atomically
     await this.appointmentRepo.create(appointment, serviceIds);
+
+    // 4. Schedule Notification
+    await this.scheduleReminder(appointment, client.name);
   }
 
   /**
@@ -89,6 +114,11 @@ export class AppointmentService {
     };
 
     await this.appointmentRepo.create(appointment, serviceIds);
+
+    const client = await this.clientRepo.findById(clientId);
+    if (client) {
+      await this.scheduleReminder(appointment, client.name);
+    }
   }
 
   async listUpcoming() {
@@ -112,6 +142,7 @@ export class AppointmentService {
 
   async delete(id: string) {
     await this.appointmentRepo.softDelete(id);
+    await this.notificationService.cancelNotificationAsync(id);
   }
 
   async updatePaymentStatus(id: string, status: "paid" | "unpaid") {
@@ -154,6 +185,13 @@ export class AppointmentService {
     };
 
     await this.appointmentRepo.update(updatedAppointment, serviceIds);
+
+    // Cancel old reminder and schedule new one
+    await this.notificationService.cancelNotificationAsync(id);
+    const client = await this.clientRepo.findById(appt.clientId);
+    if (client) {
+      await this.scheduleReminder(updatedAppointment, client.name);
+    }
   }
 
   async getClientMetrics(clientId: string) {

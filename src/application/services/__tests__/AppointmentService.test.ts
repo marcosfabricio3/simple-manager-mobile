@@ -115,6 +115,7 @@ describe("AppointmentService (Application Layer)", () => {
       totalAppointments: 5,
       cancelledAppointments: 1,
       totalDebt: 500,
+      totalSpent: 0,
       nextPending: "2024-12-12T10:00:00.000Z",
     };
     const mockGetMetrics = jest

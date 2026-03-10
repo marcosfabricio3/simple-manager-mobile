@@ -26,6 +26,7 @@ const MAPPING = {
   "moon.fill": "dark-mode",
   "bell.fill": "notifications",
   "trash.fill": "delete",
+  "clock.fill": "schedule",
   calendar: "event",
   "person.3.fill": "people",
 } as IconMapping;

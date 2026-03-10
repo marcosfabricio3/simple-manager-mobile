@@ -1,13 +1,18 @@
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { SettingsItem } from "@/src/presentation/components/SettingsItem";
-import React, { useState } from "react";
+import { router } from "expo-router";
+import React from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { router } from "expo-router";
-
 import { db } from "@/src/infraestructure/database/database";
+
 export default function SettingsScreen() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState(true);
+  const {
+    darkMode,
+    notificationsEnabled,
+    notificationAdvanceMin,
+    updateSettings,
+  } = useSettingsStore();
 
   const handleServicesNav = () => {
     router.push("/settings/services");
@@ -49,6 +54,38 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleAdvancePress = () => {
+    const options = [
+      "Cancelar",
+      "A la hora exacta",
+      "15 minutos antes",
+      "30 minutos antes",
+      "1 hora antes",
+    ];
+    const values = [null, 0, 15, 30, 60];
+
+    // Simple Alert for cross-platform (ActionSheetIOS can be used in a pure iOS build)
+    Alert.alert(
+      "Antelación de recordatorio",
+      "¿Con cuánto tiempo de anticipación deseas recibir la alarma?",
+      options.map((opt, index) => ({
+        text: opt,
+        style: index === 0 ? "cancel" : "default",
+        onPress: () => {
+          if (index > 0) {
+            updateSettings({ notificationAdvanceMin: values[index] as number });
+          }
+        },
+      })),
+    );
+  };
+
+  const formatAdvance = (mins: number) => {
+    if (mins === 0) return "A la hora";
+    if (mins === 60) return "1 hora antes";
+    return `${mins} min antes`;
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.headerTitle}>Configuración</Text>
@@ -72,15 +109,24 @@ export default function SettingsScreen() {
           title="Modo Oscuro"
           type="switch"
           value={darkMode}
-          onValueChange={setDarkMode}
+          onValueChange={(val) => updateSettings({ darkMode: val })}
         />
         <SettingsItem
           icon="bell.fill"
           title="Notificaciones Push"
           type="switch"
-          value={notifications}
-          onValueChange={setNotifications}
+          value={notificationsEnabled}
+          onValueChange={(val) => updateSettings({ notificationsEnabled: val })}
         />
+        {notificationsEnabled && (
+          <SettingsItem
+            icon="clock.fill"
+            title="Antelación del aviso"
+            type="select"
+            value={formatAdvance(notificationAdvanceMin)}
+            onPress={handleAdvancePress}
+          />
+        )}
       </View>
 
       <Text style={styles.sectionTitle}>Datos Avanzados</Text>

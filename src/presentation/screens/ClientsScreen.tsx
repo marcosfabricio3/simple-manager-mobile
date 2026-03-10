@@ -5,15 +5,15 @@ import { useClients } from "@/src/presentation/hooks/useClients";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 export default function ClientsScreen() {
@@ -236,6 +236,10 @@ export default function ClientsScreen() {
         client={selectedClientForProfile}
         visible={!!selectedClientForProfile}
         onClose={() => setSelectedClientForProfile(null)}
+        onEditClient={(clientToEdit) => {
+          setSelectedClientForProfile(null);
+          setTimeout(() => handleEdit(clientToEdit), 300);
+        }}
       />
     </KeyboardAvoidingView>
   );

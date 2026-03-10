@@ -7,9 +7,9 @@ export interface SettingsItemProps {
   title: string;
   subtitle?: string;
   onPress?: () => void;
-  type?: "link" | "switch" | "action";
-  value?: boolean;
-  onValueChange?: (value: boolean) => void;
+  type?: "link" | "switch" | "action" | "select";
+  value?: boolean | string;
+  onValueChange?: (value: any) => void;
   destructive?: boolean;
 }
 
@@ -46,10 +46,16 @@ export function SettingsItem({
       <View style={styles.actionContainer}>
         {type === "switch" && (
           <Switch
-            value={value}
+            value={value as boolean}
             onValueChange={onValueChange}
             trackColor={{ false: "#767577", true: "#34C759" }}
           />
+        )}
+        {type === "select" && (
+          <View style={styles.selectActionContainer}>
+            <Text style={styles.selectValue}>{value}</Text>
+            <IconSymbol name="chevron.right" size={20} color="#C7C7CC" />
+          </View>
         )}
         {type === "link" && (
           <IconSymbol name="chevron.right" size={20} color="#C7C7CC" />
@@ -113,5 +119,14 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     justifyContent: "center",
     alignItems: "center",
+  },
+  selectActionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  selectValue: {
+    fontSize: 16,
+    color: "#8E8E93",
+    marginRight: 8,
   },
 });

@@ -19,6 +19,7 @@ interface ClientProfileModalProps {
   client: Client | null;
   visible: boolean;
   onClose: () => void;
+  onEditClient?: (client: Client) => void;
 }
 
 interface ClientMetrics {
@@ -26,6 +27,7 @@ interface ClientMetrics {
   totalAppointments: number;
   cancelledAppointments: number;
   totalDebt: number;
+  totalSpent: number;
   nextPending: string | null;
 }
 
@@ -33,6 +35,7 @@ export function ClientProfileModal({
   client,
   visible,
   onClose,
+  onEditClient,
 }: ClientProfileModalProps) {
   const [metrics, setMetrics] = useState<ClientMetrics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,10 +59,14 @@ export function ClientProfileModal({
     }
   };
 
-  const handlePay = async (appointmentId: string) => {
+  const handleTogglePayment = async (
+    appointmentId: string,
+    currentStatus: "paid" | "unpaid",
+  ) => {
     try {
+      const newStatus = currentStatus === "paid" ? "unpaid" : "paid";
       const service = new AppointmentService();
-      await service.updatePaymentStatus(appointmentId, "paid");
+      await service.updatePaymentStatus(appointmentId, newStatus);
       await loadMetrics(); // Refresh data
     } catch (e) {
       console.error(e);
@@ -125,9 +132,20 @@ export function ClientProfileModal({
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>{client.name}</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <MaterialIcons name="close" size={24} color="#000" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            {onEditClient && (
+              <TouchableOpacity
+                onPress={() => onEditClient(client)}
+                style={styles.editBtn}
+              >
+                <MaterialIcons name="edit" size={20} color="#007AFF" />
+                <Text style={styles.editBtnText}>Editar</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+              <MaterialIcons name="close" size={24} color="#000" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {loading || !metrics ? (
@@ -139,29 +157,53 @@ export function ClientProfileModal({
           <View style={styles.content}>
             <View style={styles.metricsGrid}>
               <View style={[styles.metricCard, { backgroundColor: "#E3F2FD" }]}>
-                <Text style={styles.metricLabel}>Turnos Agendados</Text>
+                <Text style={styles.metricLabel}>Turnos</Text>
                 <Text style={[styles.metricValue, { color: "#1976D2" }]}>
                   {metrics.totalAppointments}
                 </Text>
               </View>
+              <View style={[styles.metricCard, { backgroundColor: "#FFF3E0" }]}>
+                <Text style={styles.metricLabel}>Cancelados</Text>
+                <Text style={[styles.metricValue, { color: "#E65100" }]}>
+                  {metrics.cancelledAppointments}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.metricsGrid}>
               <View style={[styles.metricCard, { backgroundColor: "#FFEBEE" }]}>
-                <Text style={styles.metricLabel}>Deuda Actual</Text>
+                <Text style={styles.metricLabel}>Deuda</Text>
                 <Text style={[styles.metricValue, { color: "#D32F2F" }]}>
                   ${metrics.totalDebt}
+                </Text>
+              </View>
+              <View style={[styles.metricCard, { backgroundColor: "#E8F5E9" }]}>
+                <Text style={styles.metricLabel}>Gastado</Text>
+                <Text style={[styles.metricValue, { color: "#388E3C" }]}>
+                  ${metrics.totalSpent}
                 </Text>
               </View>
             </View>
 
             <View style={styles.metricsRow}>
               <Text style={styles.minorMetric}>
-                Cancelados: {metrics.cancelledAppointments}
-              </Text>
-              <Text style={styles.minorMetric}>
-                Próximo:{" "}
+                Próximo Turno:{" "}
                 {metrics.nextPending
                   ? new Date(metrics.nextPending).toLocaleDateString()
                   : "Ninguno"}
               </Text>
+            </View>
+
+            <View style={styles.notesContainer}>
+              <Text style={styles.sectionTitle}>Notas Clínicas / Extras</Text>
+              <View style={styles.notesBox}>
+                <Text
+                  style={client.notes ? styles.notesText : styles.notesEmpty}
+                >
+                  {client.notes
+                    ? client.notes
+                    : "No hay notas o detalles registrados para este cliente."}
+                </Text>
+              </View>
             </View>
 
             <Text style={styles.sectionTitle}>Historial de Turnos</Text>
@@ -246,38 +288,38 @@ export function ClientProfileModal({
                   <View style={styles.appFooter}>
                     <Text style={styles.priceText}>${item.totalPrice}</Text>
 
-                    {item.status === "completed" && (
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginTop: 8,
+                      }}
+                    >
+                      <TouchableOpacity
+                        style={[
+                          styles.toggleBtn,
+                          item.paymentStatus === "paid"
+                            ? styles.togglePaid
+                            : styles.toggleUnpaid,
+                        ]}
+                        onPress={() =>
+                          handleTogglePayment(item.id, item.paymentStatus)
+                        }
                       >
-                        {item.paymentStatus === "unpaid" && (
-                          <TouchableOpacity
-                            style={styles.payBtn}
-                            onPress={() => handlePay(item.id)}
-                          >
-                            <Text style={styles.payBtnText}>Cobrar</Text>
-                          </TouchableOpacity>
-                        )}
-                        <View
+                        <Text
                           style={[
-                            styles.paymentBadge,
+                            styles.toggleBtnText,
                             item.paymentStatus === "paid"
-                              ? styles.paymentPaid
-                              : styles.paymentUnpaid,
+                              ? styles.togglePaidText
+                              : styles.toggleUnpaidText,
                           ]}
                         >
-                          <Text style={styles.paymentText}>
-                            {item.paymentStatus === "paid"
-                              ? "Pagado"
-                              : "Adeudado"}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
+                          {item.paymentStatus === "paid"
+                            ? "✅ Abonado (Anular)"
+                            : "💳 Marcar como Pagado"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               )}
@@ -302,6 +344,20 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 22, fontWeight: "bold", color: "#1C1C1E" },
   closeBtn: { padding: 4 },
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0F8FF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  editBtnText: {
+    color: "#007AFF",
+    fontWeight: "bold",
+    fontSize: 14,
+  },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 12, color: "#8E8E93" },
   content: { flex: 1, padding: 20 },
@@ -327,6 +383,32 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 12,
     color: "#1C1C1E",
+  },
+  notesContainer: {
+    marginBottom: 20,
+  },
+  notesBox: {
+    backgroundColor: "#FFF9C4", // Light yellow tint to resemble a sticky note
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FFF59D",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  notesText: {
+    fontSize: 15,
+    color: "#424242",
+    lineHeight: 22,
+  },
+  notesEmpty: {
+    fontSize: 15,
+    color: "#9E9D24",
+    fontStyle: "italic",
+    textAlign: "center",
   },
   emptyText: {
     textAlign: "center",
@@ -368,29 +450,40 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 12, fontWeight: "600", color: "#424242" },
   servicesList: { fontSize: 14, color: "#666", marginBottom: 12 },
   appFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "stretch",
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F2F2F7",
+    paddingTop: 8,
   },
   priceText: { fontSize: 16, fontWeight: "bold", color: "#1C1C1E" },
-  paymentBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
     borderWidth: 1,
   },
-  paymentPaid: { backgroundColor: "#E8F5E9", borderColor: "#4CAF50" },
-  paymentUnpaid: { backgroundColor: "#FFEBEE", borderColor: "#F44336" },
-  paymentText: { fontSize: 11, fontWeight: "bold", color: "#424242" },
-  payBtn: {
-    backgroundColor: "#34C759",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+  togglePaid: {
+    backgroundColor: "#E8F5E9",
+    borderColor: "#A5D6A7",
   },
-  payBtnText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "700",
+  toggleUnpaid: {
+    backgroundColor: "#FFEBEE",
+    borderColor: "#EF9A9A",
+  },
+  toggleBtnText: {
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  togglePaidText: {
+    color: "#2E7D32",
+  },
+  toggleUnpaidText: {
+    color: "#C62828",
   },
 });

@@ -1,6 +1,6 @@
 import {
-  Appointment,
-  AppointmentWithDetails,
+    Appointment,
+    AppointmentWithDetails,
 } from "../../domain/entities/Appointment";
 import { db } from "../database/database";
 
@@ -316,11 +316,20 @@ export class AppointmentRepository {
       (h) => h.status === "cancelled",
     ).length;
 
-    // Calculate debt only from completed appointments that remain unpaid
+    // Calculate debt only from active appointments (completed or pending) that remain unpaid
     const debtAppointments = history.filter(
-      (h) => h.status === "completed" && h.paymentStatus === "unpaid",
+      (h) => h.status !== "cancelled" && h.paymentStatus === "unpaid",
     );
     const totalDebt = debtAppointments.reduce(
+      (sum, appt) => sum + appt.totalPrice,
+      0,
+    );
+
+    // Calculate total spent from all active appointments that are paid
+    const paidAppointments = history.filter(
+      (h) => h.status !== "cancelled" && h.paymentStatus === "paid",
+    );
+    const totalSpent = paidAppointments.reduce(
       (sum, appt) => sum + appt.totalPrice,
       0,
     );
@@ -342,6 +351,7 @@ export class AppointmentRepository {
       totalAppointments,
       cancelledAppointments,
       totalDebt,
+      totalSpent,
       nextPending,
     };
   }
