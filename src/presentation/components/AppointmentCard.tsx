@@ -1,7 +1,8 @@
 import {
-    AppointmentStatus,
-    AppointmentWithDetails,
+  AppointmentStatus,
+  AppointmentWithDetails,
 } from "@/src/domain/entities/Appointment";
+import { useAppointmentActions } from "@/src/presentation/hooks/useAppointmentActions";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface Props {
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export function AppointmentCard({ appointment, onDelete }: Props) {
+  const { deleteAppointmentWithPrompt } = useAppointmentActions();
+
   // Parsing dates nicely to Display Time
   const dateObj = new Date(appointment.date);
   const timeString = dateObj.toLocaleTimeString([], {
@@ -51,7 +54,11 @@ export function AppointmentCard({ appointment, onDelete }: Props) {
         </Text>
         <TouchableOpacity
           style={styles.cancelButton}
-          onPress={() => onDelete(appointment.id)}
+          onPress={() =>
+            deleteAppointmentWithPrompt(appointment.id, () =>
+              onDelete(appointment.id),
+            )
+          }
         >
           <Text style={styles.cancelText}>Cancelar</Text>
         </TouchableOpacity>

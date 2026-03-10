@@ -70,6 +70,13 @@ export default function TabLayout() {
           title: "Nuevo Turno",
         }}
       />
+      <Tabs.Screen
+        name="appointments/edit"
+        options={{
+          href: null,
+          title: "Editar Turno",
+        }}
+      />
     </Tabs>
   );
 }

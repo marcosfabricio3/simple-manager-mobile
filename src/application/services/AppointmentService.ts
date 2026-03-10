@@ -99,6 +99,13 @@ export class AppointmentService {
     return await this.appointmentRepo.findToday();
   }
 
+  async listBetweenDates(startDateIso: string, endDateIso: string) {
+    return await this.appointmentRepo.findBetweenDates(
+      startDateIso,
+      endDateIso,
+    );
+  }
+
   async getRevenueToday(): Promise<number> {
     return await this.appointmentRepo.calculateRevenueToday();
   }
@@ -109,5 +116,49 @@ export class AppointmentService {
 
   async updatePaymentStatus(id: string, status: "paid" | "unpaid") {
     await this.appointmentRepo.updatePaymentStatus(id, status);
+  }
+
+  async updateStatus(
+    id: string,
+    status: "pending" | "completed" | "cancelled",
+  ) {
+    await this.appointmentRepo.updateStatus(id, status);
+  }
+
+  async update(
+    id: string,
+    dateIsoString: string,
+    durationMinutes: number,
+    serviceIds: string[],
+    notes?: string,
+  ) {
+    if (!id) throw new Error("ID de turno requerido");
+    if (!dateIsoString) throw new Error("Fecha del turno es requerida");
+    if (serviceIds.length === 0)
+      throw new Error("Selecciona al menos un servicio");
+
+    const appt = await this.appointmentRepo.findById(id);
+    if (!appt) throw new Error("Turno no encontrado");
+
+    const updatedAppointment: Appointment = {
+      id: appt.id,
+      clientId: appt.clientId,
+      date: dateIsoString,
+      durationMinutes,
+      status: appt.status,
+      paymentStatus: appt.paymentStatus,
+      notes,
+      createdAt: appt.createdAt,
+      updatedAt: new Date().toISOString(),
+      isDeleted: false,
+    };
+
+    await this.appointmentRepo.update(updatedAppointment, serviceIds);
+  }
+
+  async getClientMetrics(clientId: string) {
+    if (!clientId)
+      throw new Error("Client ID es requerido para obtener métricas");
+    return await this.appointmentRepo.getClientMetrics(clientId);
   }
 }

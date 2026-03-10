@@ -38,21 +38,11 @@ export function useDashboard() {
     load();
   }, [load]);
 
-  const removeAppointment = async (id: string) => {
-    try {
-      await apptService.delete(id);
-      await load();
-    } catch (error) {
-      console.error(getErrorMessage(error));
-    }
-  };
-
   return {
     todayAppointments,
     revenueToday,
     totalClients,
     loading,
     refresh: load,
-    removeAppointment,
   };
 }

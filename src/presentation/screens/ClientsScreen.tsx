@@ -122,7 +122,21 @@ export default function ClientsScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      <Text style={styles.headerTitle}>Directorio de Clientes</Text>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+        <Text style={[styles.headerTitle, { marginBottom: 0 }]}>
+          Directorio de Clientes
+        </Text>
+        <Text style={{ fontSize: 16, color: "#8E8E93", fontWeight: "600" }}>
+          Total: {clients.length}
+        </Text>
+      </View>
 
       <View style={styles.formContainer}>
         <Text style={styles.sectionTitle}>

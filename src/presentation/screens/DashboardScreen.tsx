@@ -3,23 +3,17 @@ import { useDashboard } from "@/src/presentation/hooks/useDashboard";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import {
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function DashboardScreen() {
-  const {
-    todayAppointments,
-    revenueToday,
-    totalClients,
-    loading,
-    refresh,
-    removeAppointment,
-  } = useDashboard();
+  const { todayAppointments, revenueToday, totalClients, loading, refresh } =
+    useDashboard();
 
   return (
     <View style={styles.container}>
@@ -55,8 +49,10 @@ export default function DashboardScreen() {
             <View style={styles.cardsRow}>
               <View style={[styles.metricCard, { backgroundColor: "#FF9500" }]}>
                 <MaterialIcons name="people" size={24} color="white" />
-                <Text style={styles.metricLabel}>Total Clientes</Text>
-                <Text style={styles.metricValue}>{totalClients}</Text>
+                <Text style={styles.metricLabel}>Clientes para Hoy</Text>
+                <Text style={styles.metricValue}>
+                  {new Set(todayAppointments.map((a) => a.clientId)).size}
+                </Text>
               </View>
             </View>
 
@@ -73,7 +69,7 @@ export default function DashboardScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <AppointmentCard appointment={item} onDelete={removeAppointment} />
+          <AppointmentCard appointment={item} onDelete={refresh} />
         )}
       />
 

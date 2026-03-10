@@ -1,10 +1,12 @@
+import { AppointmentService } from "@/src/application/services/AppointmentService";
 import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
 import { Client } from "@/src/domain/entities/Client";
-import { AppointmentRepository } from "@/src/infraestructure/repositories/AppointmentRepository";
 import { MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Modal,
     StyleSheet,
@@ -44,8 +46,8 @@ export function ClientProfileModal({
   const loadMetrics = async () => {
     try {
       setLoading(true);
-      const repo = new AppointmentRepository();
-      const data = await repo.getClientMetrics(client!.id);
+      const service = new AppointmentService();
+      const data = await service.getClientMetrics(client!.id);
       setMetrics(data);
     } catch (e) {
       console.error(e);
@@ -56,12 +58,59 @@ export function ClientProfileModal({
 
   const handlePay = async (appointmentId: string) => {
     try {
-      const repo = new AppointmentRepository();
-      await repo.updatePaymentStatus(appointmentId, "paid");
+      const service = new AppointmentService();
+      await service.updatePaymentStatus(appointmentId, "paid");
       await loadMetrics(); // Refresh data
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const confirmDelete = (appointmentId: string) => {
+    Alert.alert(
+      "Cancelar o Eliminar",
+      "¿El paciente canceló el turno o deseas eliminar el registro por error?",
+      [
+        { text: "Volver", style: "cancel" },
+        {
+          text: "Canceló el Cliente",
+          onPress: async () => {
+            try {
+              const service = new AppointmentService();
+              await service.updateStatus(appointmentId, "cancelled");
+              await loadMetrics();
+            } catch (e) {
+              console.error(e);
+            }
+          },
+        },
+        {
+          text: "Eliminar Registro",
+          onPress: async () => {
+            try {
+              const service = new AppointmentService();
+              await service.delete(appointmentId);
+              await loadMetrics();
+            } catch (e) {
+              console.error(e);
+            }
+          },
+          style: "destructive",
+        },
+      ],
+    );
+  };
+
+  const handleEdit = (appointment: AppointmentWithDetails) => {
+    onClose(); // Close the modal before navigating
+    // Need a small timeout to let the modal fully close before React Navigation tries to open a screen
+    // Modal unmount on iOS can conflict with pushing new stacks.
+    setTimeout(() => {
+      router.push({
+        pathname: "/(tabs)/appointments/edit",
+        params: { id: appointment.id },
+      });
+    }, 150);
   };
 
   if (!client) return null;
@@ -129,30 +178,64 @@ export function ClientProfileModal({
               renderItem={({ item }) => (
                 <View style={styles.appointmentCard}>
                   <View style={styles.appHeader}>
-                    <Text style={styles.appDate}>
-                      {new Date(item.date).toLocaleDateString()} -{" "}
-                      {new Date(item.date).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </Text>
-                    <View
-                      style={[
-                        styles.badge,
-                        item.status === "completed"
-                          ? styles.badgeSuccess
-                          : item.status === "pending"
-                            ? styles.badgeWarning
-                            : styles.badgeError,
-                      ]}
-                    >
-                      <Text style={styles.badgeText}>
-                        {item.status === "completed"
-                          ? "Completado"
-                          : item.status === "pending"
-                            ? "Pendiente"
-                            : "Cancelado"}
+                    <View>
+                      <Text style={styles.appDate}>
+                        {new Date(item.date).toLocaleDateString()} -{" "}
+                        {new Date(item.date).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </Text>
+                      <View
+                        style={[
+                          styles.badge,
+                          { alignSelf: "flex-start", marginTop: 4 },
+                          item.status === "completed"
+                            ? styles.badgeSuccess
+                            : item.status === "pending"
+                              ? new Date(item.date) > new Date()
+                                ? styles.badgeWarning
+                                : styles.badgeError
+                              : styles.badgeError,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.badgeText,
+                            item.status === "pending" &&
+                            new Date(item.date) < new Date()
+                              ? { color: "#D32F2F" }
+                              : null,
+                          ]}
+                        >
+                          {item.status === "completed"
+                            ? "Completado"
+                            : item.status === "pending"
+                              ? new Date(item.date) > new Date()
+                                ? "Pendiente"
+                                : "Vencido"
+                              : "Cancelado"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.appActions}>
+                      <TouchableOpacity
+                        style={styles.actionIconBtn}
+                        onPress={() => handleEdit(item)}
+                      >
+                        <MaterialIcons name="edit" size={20} color="#007AFF" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionIconBtn}
+                        onPress={() => confirmDelete(item.id)}
+                      >
+                        <MaterialIcons
+                          name="delete"
+                          size={20}
+                          color="#FF3B30"
+                        />
+                      </TouchableOpacity>
                     </View>
                   </View>
 
@@ -265,7 +348,17 @@ const styles = StyleSheet.create({
   appHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 8,
+  },
+  appActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  actionIconBtn: {
+    padding: 6,
+    backgroundColor: "#F2F2F7",
+    borderRadius: 8,
   },
   appDate: { fontSize: 15, fontWeight: "600", color: "#1C1C1E" },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },

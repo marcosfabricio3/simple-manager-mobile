@@ -50,6 +50,7 @@ describe("AppointmentService (Application Layer)", () => {
     expect(createdAppt.clientId).toBe(createdClient.id);
     expect(createdAppt.durationMinutes).toBe(60);
     expect(createdAppt.status).toBe("pending");
+    expect(createdAppt.paymentStatus).toBe("unpaid");
     expect(serviceIds).toEqual(["service-id-1", "service-id-2"]);
     expect(createdAppt.notes).toBe("First visit");
   });
@@ -95,5 +96,41 @@ describe("AppointmentService (Application Layer)", () => {
     const rev = await service.getRevenueToday();
     expect(mockApptRepoRev).toHaveBeenCalled();
     expect(rev).toBe(1500);
+  });
+
+  it("should update payment status by delegating to repository", async () => {
+    const mockApptUpdatePayment = jest
+      .spyOn(AppointmentRepository.prototype, "updatePaymentStatus")
+      .mockResolvedValue(undefined);
+
+    await service.updatePaymentStatus("appt-id-123", "paid");
+
+    expect(mockApptUpdatePayment).toHaveBeenCalledTimes(1);
+    expect(mockApptUpdatePayment).toHaveBeenCalledWith("appt-id-123", "paid");
+  });
+
+  it("should get client metrics successfully from repository", async () => {
+    const mockMetrics = {
+      history: [],
+      totalAppointments: 5,
+      cancelledAppointments: 1,
+      totalDebt: 500,
+      nextPending: "2024-12-12T10:00:00.000Z",
+    };
+    const mockGetMetrics = jest
+      .spyOn(AppointmentRepository.prototype, "getClientMetrics")
+      .mockResolvedValue(mockMetrics);
+
+    const result = await service.getClientMetrics("client-id-abc");
+
+    expect(mockGetMetrics).toHaveBeenCalledTimes(1);
+    expect(mockGetMetrics).toHaveBeenCalledWith("client-id-abc");
+    expect(result).toEqual(mockMetrics);
+  });
+
+  it("should throw error getting client metrics if client ID is missing", async () => {
+    await expect(service.getClientMetrics("")).rejects.toThrow(
+      "Client ID es requerido para obtener métricas",
+    );
   });
 });

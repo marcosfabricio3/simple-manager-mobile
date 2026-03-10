@@ -1,13 +1,14 @@
 import { useToast } from "@/components/context/ToastContext";
+import { AppointmentService } from "@/src/application/services/AppointmentService";
 import { Client } from "@/src/domain/entities/Client";
 import { ClientSelector } from "@/src/presentation/components/ClientSelector";
-import { useAppointments } from "@/src/presentation/hooks/useAppointments";
 import { useClients } from "@/src/presentation/hooks/useClients";
 import { useServices } from "@/src/presentation/hooks/useServices";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Button,
   KeyboardAvoidingView,
   Platform,
@@ -18,32 +19,24 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { AppointmentRepository } from "../../infraestructure/repositories/AppointmentRepository";
 
-export default function CreateAppointmentScreen() {
-  const { createWithExisting } = useAppointments();
+export default function EditAppointmentScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+
   const { services } = useServices();
   const { clients, load: loadClients } = useClients();
   const { addToast } = useToast();
-  const params = useLocalSearchParams();
 
   const [selectedClientId, setSelectedClientId] = useState<
     string | undefined
   >();
-
   const [dateStr, setDateStr] = useState("");
   const [timeStr, setTimeStr] = useState("");
   const [endTimeStr, setEndTimeStr] = useState("");
   const [notes, setNotes] = useState("");
 
   const [dateObj, setDateObj] = useState(new Date());
-
-  useEffect(() => {
-    if (params.date && typeof params.date === "string") {
-      setDateStr(params.date);
-      // Construct date object using YYYY-MM-DD at noon to avoid timezone shift to previous day
-      setDateObj(new Date(`${params.date}T12:00:00`));
-    }
-  }, [params.date]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
@@ -57,16 +50,58 @@ export default function CreateAppointmentScreen() {
   };
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const toggleService = (id: string) => {
+  useEffect(() => {
+    if (id) {
+      loadAppointmentData(id);
+    }
+  }, [id]);
+
+  const loadAppointmentData = async (appointmentId: string) => {
+    try {
+      const repo = new AppointmentRepository();
+      const appt = await repo.findById(appointmentId);
+      if (!appt) {
+        addToast("Turno no encontrado", "error");
+        router.back();
+        return;
+      }
+
+      setSelectedClientId(appt.clientId);
+      setNotes(appt.notes || "");
+
+      const d = new Date(appt.date);
+      setDateObj(d);
+      setDateStr(d.toISOString().split("T")[0]);
+
+      setTimeStr(formatTime24h(d));
+
+      const endD = new Date(d.getTime() + appt.durationMinutes * 60000);
+      setEndTimeStr(formatTime24h(endD));
+
+      setSelectedServices(appt.services.map((s) => s.id));
+    } catch (e) {
+      console.error(e);
+      addToast("Error al cargar turno", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleService = (serviceId: string) => {
     setSelectedServices((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+      prev.includes(serviceId)
+        ? prev.filter((s) => s !== serviceId)
+        : [...prev, serviceId],
     );
   };
 
   const handleSave = async () => {
     setIsSubmitting(true);
     try {
+      if (!id) throw new Error("ID de turno faltante");
+
       if (!dateStr || !timeStr) {
         throw new Error(
           "Formato de fecha u hora requerido (Ej: 2024-12-01 / 14:30)",
@@ -96,21 +131,16 @@ export default function CreateAppointmentScreen() {
         );
       }
 
-      if (!selectedClientId) {
-        throw new Error(
-          "Por favor, selecciona o crea un cliente para el turno.",
-        );
-      }
-
-      await createWithExisting(
-        selectedClientId,
+      const service = new AppointmentService();
+      await service.update(
+        id,
         combinedDate.toISOString(),
         durNum,
         selectedServices,
         notes,
       );
 
-      addToast("Turno creado exitosamente", "success");
+      addToast("Turno actualizado exitosamente", "success");
       router.back();
     } catch (error) {
       addToast(error instanceof Error ? error.message : "Error", "error");
@@ -119,6 +149,19 @@ export default function CreateAppointmentScreen() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -126,6 +169,7 @@ export default function CreateAppointmentScreen() {
     >
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.card}>
+          {/* Keeping it readonly or allowing change. For MVP we allow it. */}
           <ClientSelector
             clients={clients}
             selectedClientId={selectedClientId}
@@ -280,7 +324,7 @@ export default function CreateAppointmentScreen() {
 
         <View style={{ marginBottom: 40, marginTop: 10 }}>
           <Button
-            title={isSubmitting ? "Guardando..." : "Confirmar Turno"}
+            title={isSubmitting ? "Guardando..." : "Guardar Cambios"}
             onPress={handleSave}
             disabled={isSubmitting}
           />
