@@ -1,4 +1,7 @@
+import { Colors } from "@/constants/theme";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { Service } from "@/src/domain/entities/Service";
+import { MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface Props {
@@ -8,29 +11,48 @@ interface Props {
 }
 
 export function ServiceCard({ service, onEdit, onDelete }: Props) {
-  return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.titleGroup}>
-          <View style={[styles.colorDot, { backgroundColor: service.color }]} />
-          <Text style={styles.title}>{service.name}</Text>
-        </View>
-        <Text style={styles.price}>${service.defaultPrice.toFixed(2)}</Text>
-      </View>
+  const { darkMode } = useSettingsStore();
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.button, styles.editButton]}
-          onPress={() => onEdit(service)}
-        >
-          <Text style={styles.buttonTextPrimary}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.deleteButton]}
-          onPress={() => onDelete(service.id)}
-        >
-          <Text style={styles.buttonTextDanger}>Eliminar</Text>
-        </TouchableOpacity>
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <View style={styles.content}>
+        <View style={styles.info}>
+          <View style={styles.titleRow}>
+            <View style={[styles.dot, { backgroundColor: service.color }]} />
+            <Text style={[styles.name, { color: colors.text }]}>
+              {service.name}
+            </Text>
+          </View>
+          <Text style={[styles.priceValue, { color: colors.primary }]}>
+            ${service.defaultPrice.toLocaleString()}
+          </Text>
+        </View>
+
+        <View style={styles.actions}>
+          <TouchableOpacity
+            onPress={() => onEdit(service)}
+            style={[styles.miniBtn, { backgroundColor: colors.primary + "10" }]}
+          >
+            <MaterialIcons name="edit" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onDelete(service.id)}
+            style={[styles.miniBtn, { backgroundColor: colors.danger + "10" }]}
+          >
+            <MaterialIcons
+              name="delete-outline"
+              size={18}
+              color={colors.danger}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -38,67 +60,52 @@ export function ServiceCard({ service, onEdit, onDelete }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "white",
+    borderRadius: 12, // Guidelines: 12px
     padding: 16,
-    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#F2F2F7",
-    marginBottom: 12,
+    marginBottom: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    shadowOpacity: 0.02,
+    shadowRadius: 5,
+    elevation: 1,
   },
-  header: {
+  content: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
   },
-  titleGroup: {
+  info: {
+    flex: 1,
+  },
+  titleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    marginBottom: 4,
   },
-  colorDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1C1C1E",
-  },
-  price: {
+  name: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#007AFF",
+    fontWeight: "700",
+  },
+  priceValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 16,
   },
   actions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 8,
+    gap: 10,
   },
-  button: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  miniBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
     alignItems: "center",
-  },
-  editButton: {
-    backgroundColor: "#F2F2F7",
-  },
-  deleteButton: {
-    backgroundColor: "#FFEEEC",
-  },
-  buttonTextPrimary: {
-    color: "#007AFF",
-    fontWeight: "600",
-  },
-  buttonTextDanger: {
-    color: "#FF3B30",
-    fontWeight: "600",
   },
 });

@@ -1,12 +1,9 @@
+import { getErrorMessage } from "@/src/application/errors/getErrorMessage";
 import { ClientService } from "@/src/application/services/ClientService";
+import { generateId } from "@/src/application/utils/id";
 import { Client } from "@/src/domain/entities/Client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-// Inline helper or import
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
+import { LayoutAnimation } from "react-native";
 
 export function useClients() {
   const service = useMemo(() => new ClientService(), []);
@@ -29,42 +26,53 @@ export function useClients() {
     load();
   }, [load]);
 
-  const remove = async (id: string) => {
-    try {
-      await service.delete(id);
-      await load();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  };
+  const remove = useCallback(
+    async (id: string) => {
+      try {
+        await service.delete(id);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    [service, load],
+  );
 
-  const update = async (client: Client) => {
-    try {
-      await service.update(client);
-      await load();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  };
+  const update = useCallback(
+    async (client: Client) => {
+      try {
+        await service.update(client);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    [service, load],
+  );
 
-  const create = async (name: string, phone: string, notes?: string) => {
-    try {
-      const now = new Date().toISOString();
-      const newClient: Client = {
-        id: Math.random().toString(36).substring(2, 15), // Ideally Crypto UUID
-        name: name.trim(),
-        phone: phone.trim() || "Sin teléfono",
-        notes: notes?.trim() || undefined,
-        createdAt: now,
-        updatedAt: now,
-        isDeleted: false,
-      };
-      await service.create(newClient);
-      await load();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  };
+  const create = useCallback(
+    async (name: string, phone: string, notes?: string) => {
+      try {
+        const now = new Date().toISOString();
+        const newClient: Client = {
+          id: generateId(),
+          name: name.trim(),
+          phone: phone.trim() || "Sin teléfono",
+          notes: notes?.trim() || undefined,
+          createdAt: now,
+          updatedAt: now,
+          isDeleted: false,
+        };
+        await service.create(newClient);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    [service, load],
+  );
 
   return {
     clients,

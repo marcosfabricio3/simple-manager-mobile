@@ -1,4 +1,6 @@
+import { Colors } from "@/constants/theme";
 import { ClientService } from "@/src/application/services/ClientService";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { Client } from "@/src/domain/entities/Client";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Crypto from "expo-crypto";
@@ -6,6 +8,7 @@ import React, { useState } from "react";
 import {
     FlatList,
     Modal,
+    SafeAreaView,
     StyleSheet,
     Text,
     TextInput,
@@ -26,6 +29,10 @@ export function ClientSelector({
   onSelectClient,
   onClientCreated,
 }: Props) {
+  const { darkMode } = useSettingsStore();
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
+
   const [modalVisible, setModalVisible] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,8 +49,6 @@ export function ClientSelector({
   const handleSaveNew = async () => {
     if (!newName.trim()) return;
 
-    // We create directly bypassing the hook so we can instantly select it
-    // In a larger app, we'd inject this via props, but this works nicely for Phase 4.5 fixes
     const now = new Date().toISOString();
     const newClient: Client = {
       id: Crypto.randomUUID(),
@@ -54,12 +59,6 @@ export function ClientSelector({
       isDeleted: false,
     };
 
-    // Quick DB Insert via Service
-    // We could use ClientService proper methods here if we added `create` to it
-    // Wait, ClientService doesn't have `create`, only ClientRepository does.
-    // Let's use the hook `useClients` properly. Wait, I can't from here if I don't pass it.
-    // Since ClientRepository has it, let's just make ClientService proxy it.
-    // I will add create to ClientService shortly.
     const service = new ClientService();
     await service.create(newClient);
 
@@ -74,23 +73,36 @@ export function ClientSelector({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Cliente Asignado *</Text>
+      <Text style={[styles.label, { color: colors.subtext }]}>
+        Cliente Asignado *
+      </Text>
 
       <TouchableOpacity
-        style={styles.selectorButton}
+        style={[
+          styles.selectorButton,
+          {
+            borderColor: colors.border,
+            backgroundColor: darkMode ? colors.secondaryBackground : "#FAFAFA",
+          },
+        ]}
         onPress={() => setModalVisible(true)}
       >
         <Text
           style={[
             styles.selectorText,
-            !selectedClient && styles.placeholderText,
+            { color: colors.text },
+            !selectedClient && { color: colors.subtext },
           ]}
         >
           {selectedClient
             ? selectedClient.name
             : "Toque para seleccionar un cliente..."}
         </Text>
-        <MaterialIcons name="arrow-drop-down" size={24} color="#8E8E93" />
+        <MaterialIcons
+          name="arrow-drop-down"
+          size={24}
+          color={colors.subtext}
+        />
       </TouchableOpacity>
 
       <Modal
@@ -99,9 +111,13 @@ export function ClientSelector({
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
+        <SafeAreaView
+          style={[styles.modalContent, { backgroundColor: colors.background }]}
+        >
+          <View
+            style={[styles.modalHeader, { borderBottomColor: colors.border }]}
+          >
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
               {isCreating ? "Nuevo Cliente" : "Seleccionar Cliente"}
             </Text>
             <TouchableOpacity
@@ -110,7 +126,7 @@ export function ClientSelector({
                 setIsCreating(false);
               }}
             >
-              <MaterialIcons name="close" size={24} color="#3A3A3C" />
+              <MaterialIcons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -118,20 +134,40 @@ export function ClientSelector({
             <View style={styles.formContainer}>
               <TextInput
                 placeholder="Nombre completo *"
+                placeholderTextColor={colors.subtext}
                 value={newName}
                 onChangeText={setNewName}
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: darkMode
+                      ? colors.secondaryBackground
+                      : "#FAFAFA",
+                    color: colors.text,
+                  },
+                ]}
                 autoFocus
               />
               <TextInput
                 placeholder="Teléfono (Opcional)"
+                placeholderTextColor={colors.subtext}
                 value={newPhone}
                 onChangeText={setNewPhone}
                 keyboardType="phone-pad"
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: darkMode
+                      ? colors.secondaryBackground
+                      : "#FAFAFA",
+                    color: colors.text,
+                  },
+                ]}
               />
               <TouchableOpacity
-                style={styles.primaryButton}
+                style={[styles.primaryButton, { backgroundColor: colors.tint }]}
                 onPress={handleSaveNew}
               >
                 <Text style={styles.primaryButtonText}>
@@ -142,7 +178,9 @@ export function ClientSelector({
                 style={styles.secondaryButton}
                 onPress={() => setIsCreating(false)}
               >
-                <Text style={styles.secondaryButtonText}>
+                <Text
+                  style={[styles.secondaryButtonText, { color: colors.tint }]}
+                >
                   Volver a la lista
                 </Text>
               </TouchableOpacity>
@@ -151,9 +189,19 @@ export function ClientSelector({
             <>
               <TextInput
                 placeholder="Buscar cliente..."
+                placeholderTextColor={colors.subtext}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                style={styles.searchInput}
+                style={[
+                  styles.searchInput,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: darkMode
+                      ? colors.secondaryBackground
+                      : "#FAFAFA",
+                    color: colors.text,
+                  },
+                ]}
               />
 
               <FlatList
@@ -162,35 +210,54 @@ export function ClientSelector({
                 contentContainerStyle={styles.listContainer}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>
+                    <Text style={[styles.emptyText, { color: colors.subtext }]}>
                       No se encontraron clientes.
                     </Text>
                   </View>
                 }
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={styles.clientRow}
+                    style={[
+                      styles.clientRow,
+                      { borderBottomColor: colors.border },
+                    ]}
                     onPress={() => {
                       onSelectClient(item);
                       setModalVisible(false);
                     }}
                   >
                     <View>
-                      <Text style={styles.clientName}>{item.name}</Text>
-                      <Text style={styles.clientPhone}>
+                      <Text style={[styles.clientName, { color: colors.text }]}>
+                        {item.name}
+                      </Text>
+                      <Text
+                        style={[styles.clientPhone, { color: colors.subtext }]}
+                      >
                         {item.phone || "Sin teléfono"}
                       </Text>
                     </View>
                     {item.id === selectedClientId && (
-                      <MaterialIcons name="check" size={24} color="#007AFF" />
+                      <MaterialIcons
+                        name="check"
+                        size={24}
+                        color={colors.tint}
+                      />
                     )}
                   </TouchableOpacity>
                 )}
               />
 
-              <View style={styles.footerContainer}>
+              <View
+                style={[
+                  styles.footerContainer,
+                  { borderTopColor: colors.border },
+                ]}
+              >
                 <TouchableOpacity
-                  style={styles.primaryButton}
+                  style={[
+                    styles.primaryButton,
+                    { backgroundColor: colors.tint },
+                  ]}
                   onPress={() => setIsCreating(true)}
                 >
                   <Text style={styles.primaryButtonText}>
@@ -200,7 +267,7 @@ export function ClientSelector({
               </View>
             </>
           )}
-        </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -213,7 +280,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#8E8E93",
     textTransform: "uppercase",
     marginBottom: 8,
   },
@@ -222,21 +288,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: "#E5E5EA",
     borderRadius: 8,
     padding: 12,
-    backgroundColor: "#FAFAFA",
   },
   selectorText: {
     fontSize: 16,
-    color: "#1C1C1E",
-  },
-  placeholderText: {
-    color: "#8E8E93",
   },
   modalContent: {
     flex: 1,
-    backgroundColor: "#FFF",
   },
   modalHeader: {
     flexDirection: "row",
@@ -244,21 +303,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1C1C1E",
   },
   searchInput: {
     margin: 16,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: "#FAFAFA",
   },
   listContainer: {
     paddingHorizontal: 16,
@@ -270,33 +325,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F2F2F7",
   },
   clientName: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#1C1C1E",
     marginBottom: 4,
   },
   clientPhone: {
     fontSize: 14,
-    color: "#8E8E93",
   },
   emptyContainer: {
     padding: 24,
     alignItems: "center",
   },
   emptyText: {
-    color: "#8E8E93",
     fontSize: 16,
   },
   footerContainer: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: "#E5E5EA",
   },
   primaryButton: {
-    backgroundColor: "#007AFF",
     padding: 16,
     borderRadius: 8,
     alignItems: "center",
@@ -311,12 +360,10 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E5EA",
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: "#FAFAFA",
   },
   secondaryButton: {
     marginTop: 12,
@@ -325,7 +372,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#007AFF",
     fontSize: 16,
     fontWeight: "600",
   },

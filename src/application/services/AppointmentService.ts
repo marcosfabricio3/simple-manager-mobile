@@ -1,10 +1,12 @@
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
-import { Appointment } from "@/src/domain/entities/Appointment";
-import { Client } from "@/src/domain/entities/Client";
-import { AppointmentRepository } from "@/src/infraestructure/repositories/AppointmentRepository";
-import { ClientRepository } from "@/src/infraestructure/repositories/ClientRepository";
-import { ExpoNotificationService } from "@/src/infrastructure/services/ExpoNotificationService";
-import * as Crypto from "expo-crypto";
+import {
+  Appointment
+} from "../../domain/entities/Appointment";
+import { Client } from "../../domain/entities/Client";
+import { AppointmentRepository } from "../../infrastructure/repositories/AppointmentRepository";
+import { ClientRepository } from "../../infrastructure/repositories/ClientRepository";
+import { ExpoNotificationService } from "../../infrastructure/services/ExpoNotificationService";
+import { generateId } from "../utils/id";
 
 export class AppointmentService {
   private appointmentRepo = new AppointmentRepository();
@@ -49,10 +51,8 @@ export class AppointmentService {
     const now = new Date().toISOString();
 
     // 1. Handle Client Creation
-    // (In a fuller phase, we'd search if it exists first, but for MVP Phase 4
-    // we just create a new client record to link the appointment to)
     const client: Client = {
-      id: Crypto.randomUUID(),
+      id: generateId(),
       name: clientName.trim(),
       phone: clientPhone.trim() || "Sin teléfono",
       createdAt: now,
@@ -64,7 +64,7 @@ export class AppointmentService {
 
     // 2. Handle Appointment
     const appointment: Appointment = {
-      id: Crypto.randomUUID(),
+      id: generateId(),
       clientId: client.id,
       date: dateIsoString,
       durationMinutes,
@@ -101,7 +101,7 @@ export class AppointmentService {
     const now = new Date().toISOString();
 
     const appointment: Appointment = {
-      id: Math.random().toString(36).substring(2, 15), // fallback uuid
+      id: generateId(),
       clientId: clientId, // Use the proper ID
       date: dateIsoString,
       durationMinutes,

@@ -1,8 +1,8 @@
-import { ServiceRepository } from "../../../infraestructure/repositories/ServiceRepository";
+import { ServiceRepository } from "../../../infrastructure/repositories/ServiceRepository";
 import { ServiceService } from "../ServiceService";
 
 // Mock the repository to isolate Application layer logic
-jest.mock("../../../infraestructure/repositories/ServiceRepository");
+jest.mock("../../../infrastructure/repositories/ServiceRepository");
 
 describe("ServiceService (Application Layer)", () => {
   let service: ServiceService;

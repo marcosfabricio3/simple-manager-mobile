@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "clinic-manager",
-    "slug": "clinic-manager",
+    "name": "Simple Manager",
+    "slug": "simple-manager",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "clinicmanager",
+    "scheme": "simplemanager",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.marcosfabricio3.simplemanager"
     },
     "web": {
       "output": "static",
@@ -45,6 +46,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c79f2694-1a7d-4a58-81d6-2a7948edb679"
+      }
     }
   }
 }

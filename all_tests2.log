@@ -1,0 +1,41 @@
+﻿
+> simple-manager@1.0.0 test
+> jest
+
+node.exe : PASS src/presentation
+/translations/__tests__/translat
+ions.test.ts
+En C:\Program 
+Files\nodejs\npm.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPM_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : N 
+   otSpecified: (PASS src/pres  
+  en...lations.test.ts:String   
+ ) [], RemoteException
+    + FullyQualifiedErrorId : N 
+   ativeCommandError
+ 
+PASS src/application/utils/__tes
+ts__/id.test.ts
+PASS src/application/services/__
+tests__/ServiceService.test.ts
+PASS src/application/services/__
+tests__/RecordService.test.ts
+PASS src/application/services/__
+tests__/EncryptionService.test.t
+s
+PASS src/application/services/__
+tests__/ClientService.test.ts
+PASS src/application/services/__
+tests__/AppointmentService.test.
+ts
+
+Test Suites: 7 passed, 7 total
+Tests:       52 passed, 52 total
+Snapshots:   0 total
+Time:        3.636 s
+Ran all test suites.

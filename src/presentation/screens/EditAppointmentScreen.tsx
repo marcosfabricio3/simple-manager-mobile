@@ -1,5 +1,7 @@
 import { useToast } from "@/components/context/ToastContext";
+import { Colors } from "@/constants/theme";
 import { AppointmentService } from "@/src/application/services/AppointmentService";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { Client } from "@/src/domain/entities/Client";
 import { ClientSelector } from "@/src/presentation/components/ClientSelector";
 import { useClients } from "@/src/presentation/hooks/useClients";
@@ -13,16 +15,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { AppointmentRepository } from "../../infraestructure/repositories/AppointmentRepository";
+import { AppointmentRepository } from "../../infrastructure/repositories/AppointmentRepository";
 
 export default function EditAppointmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { darkMode } = useSettingsStore();
+
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
 
   const { services } = useServices();
   const { clients, load: loadClients } = useClients();
@@ -154,10 +161,14 @@ export default function EditAppointmentScreen() {
       <View
         style={[
           styles.container,
-          { justifyContent: "center", alignItems: "center" },
+          {
+            backgroundColor: colors.background,
+            justifyContent: "center",
+            alignItems: "center",
+          },
         ]}
       >
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={colors.tint} />
       </View>
     );
   }
@@ -165,11 +176,16 @@ export default function EditAppointmentScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
+      <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.card}>
-          {/* Keeping it readonly or allowing change. For MVP we allow it. */}
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
           <ClientSelector
             clients={clients}
             selectedClientId={selectedClientId}
@@ -178,15 +194,32 @@ export default function EditAppointmentScreen() {
           />
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Fecha y Horario del Turno</Text>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+            Fecha y Horario del Turno
+          </Text>
 
           <TouchableOpacity onPress={() => setShowDatePicker(true)}>
             <View pointerEvents="none">
               <TextInput
                 placeholder="Fecha *"
+                placeholderTextColor={colors.subtext}
                 value={dateStr}
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: darkMode
+                      ? colors.secondaryBackground
+                      : "#FAFAFA",
+                    color: colors.text,
+                  },
+                ]}
                 editable={false}
               />
             </View>
@@ -212,8 +245,18 @@ export default function EditAppointmentScreen() {
                 <View pointerEvents="none">
                   <TextInput
                     placeholder="Hora Inicio *"
+                    placeholderTextColor={colors.subtext}
                     value={timeStr}
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: darkMode
+                          ? colors.secondaryBackground
+                          : "#FAFAFA",
+                        color: colors.text,
+                      },
+                    ]}
                     editable={false}
                   />
                 </View>
@@ -240,8 +283,18 @@ export default function EditAppointmentScreen() {
                 <View pointerEvents="none">
                   <TextInput
                     placeholder="Hora Fin *"
+                    placeholderTextColor={colors.subtext}
                     value={endTimeStr}
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: darkMode
+                          ? colors.secondaryBackground
+                          : "#FAFAFA",
+                        color: colors.text,
+                      },
+                    ]}
                     editable={false}
                   />
                 </View>
@@ -276,8 +329,15 @@ export default function EditAppointmentScreen() {
             )}
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Servicios Contratados *</Text>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+            Servicios Contratados *
+          </Text>
           {services.length === 0 ? (
             <Text style={styles.emptyText}>
               No hay servicios. Ve a Ajustes a crearlos.
@@ -288,7 +348,17 @@ export default function EditAppointmentScreen() {
               return (
                 <TouchableOpacity
                   key={svc.id}
-                  style={[styles.checkRow, selected && styles.checkRowSelected]}
+                  style={[
+                    styles.checkRow,
+                    { borderColor: colors.border },
+                    selected && [
+                      styles.checkRowSelected,
+                      {
+                        borderColor: colors.tint,
+                        backgroundColor: darkMode ? "#1a2a3a" : "#F2F8FF",
+                      },
+                    ],
+                  ]}
                   onPress={() => toggleService(svc.id)}
                 >
                   <View style={styles.checkInner}>
@@ -298,36 +368,76 @@ export default function EditAppointmentScreen() {
                     <Text
                       style={[
                         styles.checkText,
-                        selected && styles.checkTextSelected,
+                        { color: colors.text },
+                        selected && [
+                          styles.checkTextSelected,
+                          { color: colors.tint },
+                        ],
                       ]}
                     >
                       {svc.name}
                     </Text>
                   </View>
-                  <Text style={styles.checkPrice}>${svc.defaultPrice}</Text>
+                  <Text style={[styles.checkPrice, { color: colors.subtext }]}>
+                    ${svc.defaultPrice}
+                  </Text>
                 </TouchableOpacity>
               );
             })
           )}
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Notas (Opcional)</Text>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+            Notas (Opcional)
+          </Text>
           <TextInput
             placeholder="Notas interna del turno..."
+            placeholderTextColor={colors.subtext}
             value={notes}
             onChangeText={setNotes}
             multiline
-            style={[styles.input, { height: 80, textAlignVertical: "top" }]}
+            style={[
+              styles.input,
+              {
+                borderColor: colors.border,
+                backgroundColor: darkMode
+                  ? colors.secondaryBackground
+                  : "#FAFAFA",
+                color: colors.text,
+                height: 80,
+                textAlignVertical: "top",
+              },
+            ]}
           />
         </View>
 
         <View style={{ marginBottom: 40, marginTop: 10 }}>
-          <Button
-            title={isSubmitting ? "Guardando..." : "Guardar Cambios"}
+          <TouchableOpacity
+            activeOpacity={0.8}
             onPress={handleSave}
             disabled={isSubmitting}
-          />
+            style={{
+              backgroundColor: colors.primary,
+              padding: 16,
+              borderRadius: 12,
+              alignItems: "center",
+              shadowColor: colors.primary,
+              shadowOpacity: 0.2,
+              shadowRadius: 10,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 4,
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "800", fontSize: 16 }}>
+              {isSubmitting ? "GUARDANDO..." : "GUARDAR CAMBIOS"}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -337,82 +447,77 @@ export default function EditAppointmentScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
   },
   scroll: {
-    padding: 16,
+    padding: 20,
+    paddingTop: 60,
   },
   card: {
-    backgroundColor: "white",
     padding: 16,
     borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    marginBottom: 20,
+    borderWidth: 1,
     elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
-    color: "#8E8E93",
     textTransform: "uppercase",
-    marginBottom: 12,
+    marginBottom: 16,
+    letterSpacing: 1,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 15,
     marginBottom: 12,
-    backgroundColor: "#FAFAFA",
   },
   row: {
     flexDirection: "row",
+    gap: 10,
   },
   emptyText: {
-    color: "#FF3B30",
-    fontStyle: "italic",
+    fontSize: 14,
+    fontWeight: "500",
     marginBottom: 10,
   },
   checkRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "#E5E5EA",
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   checkRowSelected: {
-    borderColor: "#007AFF",
-    backgroundColor: "#F2F8FF",
+    borderWidth: 2,
   },
   checkInner: {
     flexDirection: "row",
     alignItems: "center",
   },
   colorDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 10,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 12,
   },
   checkText: {
-    fontSize: 16,
-    color: "#3A3A3C",
+    fontSize: 15,
+    fontWeight: "500",
   },
   checkTextSelected: {
-    fontWeight: "600",
-    color: "#007AFF",
+    fontWeight: "700",
   },
   checkPrice: {
     fontSize: 14,
-    color: "#8E8E93",
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

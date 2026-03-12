@@ -1,0 +1,1 @@
+﻿app/_layout.tsx(11,30): error TS2307: Cannot find module '@/src/infraestructure/database/initDatabase' or its corresponding type declarations.

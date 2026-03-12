@@ -1,6 +1,6 @@
 import { AppointmentService } from "@/src/application/services/AppointmentService";
 import { useMemo } from "react";
-import { Alert } from "react-native";
+import { Alert, LayoutAnimation } from "react-native";
 
 export function useAppointmentActions() {
   const service = useMemo(() => new AppointmentService(), []);
@@ -16,6 +16,9 @@ export function useAppointmentActions() {
           onPress: async () => {
             try {
               await service.updateStatus(id, "cancelled");
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
               if (onRefresh) onRefresh();
             } catch (e) {
               console.error(e);
@@ -27,6 +30,9 @@ export function useAppointmentActions() {
           onPress: async () => {
             try {
               await service.delete(id);
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
               if (onRefresh) onRefresh();
             } catch (e) {
               console.error(e);

@@ -1,80 +1,113 @@
-import { Tabs } from "expo-router";
-import React from "react";
-
-import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
+import { useI18n } from "@/src/presentation/translations/useI18n";
+import { Tabs } from "expo-router";
+import React from "react";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { darkMode } = useSettingsStore();
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
+  const { t, language } = useI18n();
+
+  const bottomPad = Platform.OS === "android" ? 10 : 8;
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        // ✅ Removes the black page-title header bar
         headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "700",
+        },
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          height: 62,
+          paddingBottom: bottomPad,
+          paddingTop: 8,
+          // position:absolute lets React Navigation apply safe-area
+          // insets so the tab never overlaps the system nav bar.
+          position: "absolute",
+          elevation: 8,
+        },
       }}
     >
+      {/* 1 — Dashboard */}
       <Tabs.Screen
         name="index"
         options={{
-          title: "Inicio",
+          title: language === "es" ? "Inicio" : "Home",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <IconSymbol size={26} name="house.fill" color={color} />
           ),
         }}
       />
 
+      {/* 2 — Clients */}
       <Tabs.Screen
         name="clients"
         options={{
-          title: "Clientes",
+          title: t.clients.title,
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.3.fill" color={color} />
+            <IconSymbol size={26} name="person.3.fill" color={color} />
           ),
         }}
       />
 
+      {/* 3 — Appointments / Calendar */}
+      <Tabs.Screen
+        name="appointments"
+        options={{
+          title: language === "es" ? "Turnos" : "Schedule",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={26} name="calendar" color={color} />
+          ),
+        }}
+      />
+
+      {/* 4 — Statistics */}
       <Tabs.Screen
         name="explore"
         options={{
-          title: "Turnos",
+          title: t.statistics.title,
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="calendar" color={color} />
+            <IconSymbol size={26} name="chart.bar.fill" color={color} />
           ),
         }}
       />
+
+      {/* 5 — Settings */}
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Ajustes",
+          title: t.settings.title,
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="gearshape.fill" color={color} />
+            <IconSymbol size={26} name="gearshape.fill" color={color} />
           ),
         }}
       />
-      {/* Hide nested routes from the bottom tabs bar */}
+
+      {/* Hidden nested routes */}
       <Tabs.Screen
         name="settings/services"
-        options={{
-          href: null,
-          title: "Mis Servicios",
-        }}
+        options={{ href: null, title: t.settings.myServices }}
       />
       <Tabs.Screen
         name="appointments/create"
         options={{
           href: null,
-          title: "Nuevo Turno",
+          title: language === "es" ? "Nuevo Turno" : "New Appointment",
         }}
       />
       <Tabs.Screen
         name="appointments/edit"
         options={{
           href: null,
-          title: "Editar Turno",
+          title: language === "es" ? "Editar Turno" : "Edit Appointment",
         }}
       />
     </Tabs>

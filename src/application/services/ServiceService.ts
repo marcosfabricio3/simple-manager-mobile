@@ -1,6 +1,6 @@
 import { Service } from "@/src/domain/entities/Service";
-import { ServiceRepository } from "@/src/infraestructure/repositories/ServiceRepository";
-import * as Crypto from "expo-crypto";
+import { ServiceRepository } from "@/src/infrastructure/repositories/ServiceRepository";
+import { generateId } from "../utils/id";
 
 export class ServiceService {
   private repository = new ServiceRepository();
@@ -12,7 +12,7 @@ export class ServiceService {
     const now = new Date().toISOString();
 
     const service: Service = {
-      id: Crypto.randomUUID(),
+      id: generateId(),
       name: name.trim(),
       defaultPrice,
       color: color.trim() || "#007AFF", // default blue

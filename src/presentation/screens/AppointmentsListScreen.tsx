@@ -1,24 +1,30 @@
-import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
+import { Colors } from "@/constants/theme";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { AppointmentCard } from "@/src/presentation/components/AppointmentCard";
+import { EmptyState } from "@/src/presentation/components/EmptyState";
 import { useMonthlyAppointments } from "@/src/presentation/hooks/useMonthlyAppointments";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import {
-  AgendaList,
-  CalendarProvider,
-  ExpandableCalendar,
-} from "react-native-calendars";
+import { Calendar, CalendarProvider, DateData } from "react-native-calendars";
 
 export default function AppointmentsListScreen() {
   const { appointments, loadMonth, loading } = useMonthlyAppointments();
+  const { darkMode, language } = useSettingsStore();
+  const { t } = useI18n();
+
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
 
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -27,12 +33,12 @@ export default function AppointmentsListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadMonth(currentYear, currentMonth);
+      loadMonth(currentYear, currentMonth, true);
     }, [currentYear, currentMonth, loadMonth]),
   );
 
   const onMonthChange = useCallback(
-    (date: any) => {
+    (date: { year: number; month: number }) => {
       setCurrentYear(date.year);
       setCurrentMonth(date.month);
       loadMonth(date.year, date.month);
@@ -44,95 +50,121 @@ export default function AppointmentsListScreen() {
     setSelectedDate(date);
   }, []);
 
-  const agendaSections = useMemo(() => {
-    const sectionsMap: { [key: string]: any[] } = {};
-
-    // Safety: ensure selectedDate is ALWAYS in sections to avoid SectionList index errors
-    const focusDate = selectedDate || todayStr;
-    sectionsMap[focusDate] = [];
-
-    appointments.forEach((app) => {
-      const dateKey = app.date.split("T")[0];
-      if (!sectionsMap[dateKey]) sectionsMap[dateKey] = [];
-      sectionsMap[dateKey].push(app);
-    });
-
-    return Object.keys(sectionsMap)
-      .sort()
-      .map((date) => ({
-        title: date,
-        data: sectionsMap[date],
-      }));
-  }, [appointments, selectedDate, todayStr]);
-
   const markedDates = useMemo(() => {
-    const marks: any = {};
+    const marks: Record<string, any> = {};
     appointments.forEach((app) => {
       const dateKey = app.date.split("T")[0];
-      marks[dateKey] = { marked: true, dotColor: "#FF9500" };
+      marks[dateKey] = { marked: true, dotColor: colors.secondary };
     });
+    // Highlight selected date
+    marks[selectedDate] = {
+      ...(marks[selectedDate] || {}),
+      selected: true,
+      selectedColor: colors.primary,
+    };
     return marks;
-  }, [appointments]);
+  }, [appointments, selectedDate, colors]);
 
-  const renderItem = useCallback(
-    ({ item }: any) => {
-      return (
-        <View style={styles.itemContainer}>
-          <AppointmentCard
-            appointment={item as AppointmentWithDetails}
-            onDelete={() => loadMonth(currentYear, currentMonth, true)}
-          />
-        </View>
-      );
-    },
-    [loadMonth, currentYear, currentMonth],
+  const calendarTheme = useMemo(
+    () => ({
+      backgroundColor: colors.background,
+      calendarBackground: colors.background,
+      textSectionTitleColor: colors.subtext,
+      selectedDayBackgroundColor: colors.primary,
+      selectedDayTextColor: "#ffffff",
+      todayTextColor: colors.primary,
+      dayTextColor: colors.text,
+      textDisabledColor: darkMode ? "#374151" : "#E5E7EB",
+      dotColor: colors.secondary,
+      selectedDotColor: "#ffffff",
+      arrowColor: colors.primary,
+      monthTextColor: colors.text,
+      indicatorColor: colors.primary,
+      textDayFontWeight: "600" as const,
+      textMonthFontWeight: "800" as const,
+      textDayHeaderFontWeight: "600" as const,
+      textDayFontSize: 14,
+      textMonthFontSize: 18,
+      textDayHeaderFontSize: 12,
+    }),
+    [colors, darkMode],
   );
+
+  const dailyAppointments = useMemo(() => {
+    return appointments
+      .filter((app) => app.date.split("T")[0] === selectedDate)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [appointments, selectedDate]);
 
   return (
     <CalendarProvider
       date={selectedDate}
       onDateChanged={onDateChanged}
       onMonthChange={onMonthChange}
-      showTodayButton
-      theme={{
-        todayButtonTextColor: "#007AFF",
-      }}
     >
-      <View style={styles.container}>
-        <ExpandableCalendar
-          firstDay={1}
-          markedDates={markedDates}
-          theme={calendarTheme}
-          disableAllTouchEventsForDisabledDays
-        />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
 
-        <View style={{ flex: 1 }}>
-          {loading &&
-          agendaSections.length === 1 &&
-          agendaSections[0].data.length === 0 ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#007AFF" />
-              <Text style={styles.loadingText}>Cargando turnos...</Text>
-            </View>
-          ) : (
-            <AgendaList
-              key={`agenda-list-${agendaSections.length}`}
-              sections={agendaSections}
-              renderItem={renderItem}
-              sectionStyle={styles.sectionHeader}
-              dayFormatter={(date) => {
-                const d = new Date(date);
-                return d.toLocaleDateString("es-ES", {
-                  weekday: "long",
-                  day: "numeric",
-                });
-              }}
-            />
-          )}
+        <View style={styles.calendarContainer}>
+          <Calendar
+            key={`calendar-${theme}`}
+            current={selectedDate}
+            markedDates={markedDates}
+            theme={calendarTheme}
+            onDayPress={(day: DateData) => onDateChanged(day.dateString)}
+            firstDay={1}
+            enableSwipeMonths={true}
+          />
         </View>
 
+        <View style={styles.listHeader}>
+          <Text style={[styles.listTitle, { color: colors.text }]}>
+            {t.calendar.title}
+          </Text>
+          <Text style={[styles.listSub, { color: colors.subtext }]}>
+            {new Date(selectedDate + "T12:00:00").toLocaleDateString(
+              language === "es" ? "es-ES" : "en-US",
+              {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+              },
+            )}
+          </Text>
+        </View>
+
+        <FlatList
+          data={dailyAppointments}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.itemPadding}>
+              <AppointmentCard
+                appointment={item}
+                concise={true}
+                onEdit={(id) => router.push(`/appointments/edit?id=${id}`)}
+                onDelete={() => loadMonth(currentYear, currentMonth, true)}
+              />
+            </View>
+          )}
+          ListEmptyComponent={
+            loading ? (
+              <View style={styles.statusBox}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : (
+              <EmptyState
+                iconName="event-busy"
+                title={t.calendar.freeDay}
+                description={t.calendar.noAppointments}
+              />
+            )
+          }
+          contentContainerStyle={styles.listContent}
+        />
+
         <TouchableOpacity
-          style={styles.fab}
+          activeOpacity={0.8}
+          style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() =>
             router.push(`/appointments/create?date=${selectedDate}`)
           }
@@ -144,61 +176,53 @@ export default function AppointmentsListScreen() {
   );
 }
 
-const calendarTheme = {
-  selectedDayBackgroundColor: "#007AFF",
-  selectedDayTextColor: "#ffffff",
-  todayTextColor: "#007AFF",
-  dayTextColor: "#2d4150",
-  textDisabledColor: "#d9e1e8",
-  dotColor: "#FF9500",
-  selectedDotColor: "#ffffff",
-  arrowColor: "#007AFF",
-  monthTextColor: "#007AFF",
-  indicatorColor: "#007AFF",
-  textDayFontWeight: "300" as const,
-  textMonthFontWeight: "bold" as const,
-  textDayHeaderFontWeight: "300" as const,
-};
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
   },
-  sectionHeader: {
-    backgroundColor: "#F2F2F7",
-    color: "#8E8E93",
-    padding: 10,
+  calendarContainer: {
+    paddingBottom: 8,
+    backgroundColor: "transparent",
+  },
+  listHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  listTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  listSub: {
+    fontSize: 13,
+    fontWeight: "600",
     textTransform: "capitalize",
+    marginTop: 2,
   },
-  itemContainer: {
+  listContent: {
+    paddingBottom: 100,
+  },
+  itemPadding: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
-  loadingContainer: {
+  statusBox: {
     flex: 1,
+    paddingTop: 40,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    marginTop: 10,
-    color: "#8E8E93",
-    fontSize: 16,
   },
   fab: {
     position: "absolute",
     bottom: 24,
     right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#007AFF",
+    width: 56, // Guidelines: 56px
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#007AFF",
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 });

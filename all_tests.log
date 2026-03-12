@@ -1,0 +1,38 @@
+﻿node.exe : PASS src/application/
+utils/__tests__/id.test.ts
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : N 
+   otSpecified: (PASS src/appl  
+  ic...ts__/id.test.ts:String   
+ ) [], RemoteException
+    + FullyQualifiedErrorId : N 
+   ativeCommandError
+ 
+PASS src/presentation/translatio
+ns/__tests__/translations.test.t
+s
+PASS src/application/services/__
+tests__/RecordService.test.ts
+PASS src/application/services/__
+tests__/EncryptionService.test.t
+s
+PASS src/application/services/__
+tests__/ServiceService.test.ts
+PASS src/application/services/__
+tests__/ClientService.test.ts
+PASS src/application/services/__
+tests__/AppointmentService.test.
+ts
+
+Test Suites: 7 passed, 7 total
+Tests:       52 passed, 52 total
+Snapshots:   0 total
+Time:        3.712 s
+Ran all test suites matching /sr
+c\\(application|presentation)/i.

@@ -1,6 +1,9 @@
 import { useToast } from "@/components/context/ToastContext";
+import { Colors } from "@/constants/theme";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { validateRecord } from "@/src/application/validators/recordValidator";
 import { Record } from "@/src/domain/entities/Record";
+import { EmptyState } from "@/src/presentation/components/EmptyState";
 import { RecordCard } from "@/src/presentation/components/RecordCard";
 import { useRecords } from "@/src/presentation/hooks/useRecords";
 import { useMemo, useState } from "react";
@@ -11,6 +14,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    StatusBar,
     StyleSheet,
     Text,
     TextInput,
@@ -20,6 +24,10 @@ import {
 
 export default function RecordsScreen() {
   const { records, create, remove, update, existsByTitle } = useRecords();
+  const { darkMode } = useSettingsStore();
+
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState("");
@@ -136,25 +144,44 @@ export default function RecordsScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <Text style={styles.headerTitle}>Simple Manager</Text>
+      <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
+      <Text style={[styles.headerTitle, { color: colors.text }]}>
+        Simple Manager
+      </Text>
 
-      <View style={styles.formContainer}>
-        <Text style={styles.sectionTitle}>
+      <View style={[styles.formContainer, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
           {editing ? "Editar Registro" : "Nuevo Registro"}
         </Text>
         <TextInput
           placeholder="Title"
+          placeholderTextColor={darkMode ? "#666" : "#A1A1AA"}
           value={title}
           onChangeText={setTitle}
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              backgroundColor: darkMode ? colors.secondaryBackground : "#fff",
+              color: colors.text,
+            },
+          ]}
         />
         <TextInput
           placeholder="Type"
+          placeholderTextColor={darkMode ? "#666" : "#A1A1AA"}
           value={type}
           onChangeText={setType}
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              borderColor: colors.border,
+              backgroundColor: darkMode ? colors.secondaryBackground : "#fff",
+              color: colors.text,
+            },
+          ]}
         />
         <Button
           title={editing ? "Actualizar" : "Guardar"}
@@ -175,12 +202,22 @@ export default function RecordsScreen() {
         )}
       </View>
 
-      <Text style={styles.sectionTitle}>Filtrar y Buscar</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        Filtrar y Buscar
+      </Text>
       <TextInput
         placeholder="Buscar por título..."
+        placeholderTextColor={darkMode ? "#666" : "#8E8E93"}
         value={searchQuery}
         onChangeText={setSearchQuery}
-        style={styles.searchInput}
+        style={[
+          styles.searchInput,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+            color: colors.text,
+          },
+        ]}
       />
 
       {uniqueTypes.length > 0 && (
@@ -193,7 +230,15 @@ export default function RecordsScreen() {
             <TouchableOpacity
               style={[
                 styles.filterChip,
-                !selectedType && styles.filterChipActive,
+                !selectedType && [
+                  styles.filterChipActive,
+                  { backgroundColor: colors.tint },
+                ],
+                darkMode && !selectedType && { backgroundColor: colors.tint },
+                darkMode &&
+                  selectedType && {
+                    backgroundColor: colors.secondaryBackground,
+                  },
               ]}
               onPress={() => setSelectedType(null)}
             >
@@ -201,6 +246,7 @@ export default function RecordsScreen() {
                 style={[
                   styles.filterText,
                   !selectedType && styles.filterTextActive,
+                  { color: !selectedType ? "#fff" : colors.text },
                 ]}
               >
                 Todos
@@ -211,7 +257,16 @@ export default function RecordsScreen() {
                 key={t}
                 style={[
                   styles.filterChip,
-                  selectedType === t && styles.filterChipActive,
+                  selectedType === t && [
+                    styles.filterChipActive,
+                    { backgroundColor: colors.tint },
+                  ],
+                  darkMode &&
+                    selectedType === t && { backgroundColor: colors.tint },
+                  darkMode &&
+                    selectedType !== t && {
+                      backgroundColor: colors.secondaryBackground,
+                    },
                 ]}
                 onPress={() => setSelectedType(t)}
               >
@@ -219,6 +274,7 @@ export default function RecordsScreen() {
                   style={[
                     styles.filterText,
                     selectedType === t && styles.filterTextActive,
+                    { color: selectedType === t ? "#fff" : colors.text },
                   ]}
                 >
                   {t}
@@ -234,7 +290,13 @@ export default function RecordsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 20 }}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No se encontraron registros.</Text>
+          <View style={{ paddingTop: 40 }}>
+            <EmptyState
+              iconName="folder-open"
+              title="Registros Vacíos"
+              description="No se encontraron registros de caja con los filtros actuales."
+            />
+          </View>
         }
         renderItem={({ item }) => (
           <RecordCard
@@ -252,8 +314,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    marginTop: 40,
-    backgroundColor: "#f9f9f9",
+    paddingTop: 40,
   },
   headerTitle: {
     fontSize: 24,
@@ -264,10 +325,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 10,
-    color: "#333",
   },
   formContainer: {
-    backgroundColor: "white",
     padding: 15,
     borderRadius: 8,
     marginBottom: 15,
@@ -279,19 +338,15 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     padding: 10,
     marginBottom: 10,
     borderRadius: 6,
-    backgroundColor: "#fff",
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: "#ccc",
     padding: 8,
     borderRadius: 20,
     marginBottom: 10,
-    backgroundColor: "#fff",
   },
   filtersContainer: {
     flexDirection: "row",
@@ -310,17 +365,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#007AFF",
   },
   filterText: {
-    color: "#333",
     fontSize: 14,
   },
   filterTextActive: {
-    color: "#fff",
     fontWeight: "bold",
-  },
-  emptyText: {
-    textAlign: "center",
-    color: "#888",
-    marginTop: 20,
-    fontSize: 16,
   },
 });

@@ -31,7 +31,7 @@ export class ExpoNotificationService implements INotificationService {
     }
 
     if (finalStatus !== "granted") {
-      console.log("Failed to get permission for local notification!");
+      console.error("Failed to get permission for local notification!");
       return false;
     }
 

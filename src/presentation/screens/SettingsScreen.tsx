@@ -1,34 +1,119 @@
+import { Colors } from "@/constants/theme";
+import { DatabaseBackupService } from "@/src/application/services/DatabaseBackupService";
+import { PdfReportService } from "@/src/application/services/PdfReportService";
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
+import { db } from "@/src/infrastructure/database/database";
+import { PassphraseModal } from "@/src/presentation/components/PassphraseModal";
 import { SettingsItem } from "@/src/presentation/components/SettingsItem";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import { router } from "expo-router";
-import React from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
-
-import { db } from "@/src/infraestructure/database/database";
+import React, { useState } from "react";
+import {
+  Alert,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 export default function SettingsScreen() {
   const {
     darkMode,
     notificationsEnabled,
     notificationAdvanceMin,
+    biometricLockEnabled,
+    language,
     updateSettings,
   } = useSettingsStore();
 
-  const handleServicesNav = () => {
-    router.push("/settings/services");
+  const theme = darkMode ? "dark" : "light";
+  const { t } = useI18n();
+  const colors = Colors[theme];
+
+  // ---------------------------------------------------------------------------
+  // Passphrase Modal state
+  // ---------------------------------------------------------------------------
+  const [passphraseModal, setPassphraseModal] = useState<{
+    visible: boolean;
+    mode: "export" | "import";
+    pendingFileUri?: string;
+    loading: boolean;
+  }>({ visible: false, mode: "export", loading: false });
+
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
+
+  const handleLanguagePress = () => {
+    Alert.alert(t.settings.language, t.settings.selectLanguage, [
+      { text: t.common.cancel, style: "cancel" },
+      { text: "Español", onPress: () => updateSettings({ language: "es" }) },
+      { text: "English", onPress: () => updateSettings({ language: "en" }) },
+    ]);
+  };
+
+  const handleServicesNav = () => router.push("/settings/services");
+
+  const handleGenerateReport = async () => {
+    const pdfService = new PdfReportService();
+    await pdfService.generateMonthlyReport();
+  };
+
+  const handleExportDb = () => {
+    setPassphraseModal({ visible: true, mode: "export", loading: false });
+  };
+
+  const handleImportDb = async () => {
+    const backupService = new DatabaseBackupService();
+    const fileUri = await backupService.pickBackupFile(language);
+    if (!fileUri) return;
+
+    setPassphraseModal({
+      visible: true,
+      mode: "import",
+      pendingFileUri: fileUri,
+      loading: false,
+    });
+  };
+
+  const handlePassphraseConfirm = async (passphrase: string) => {
+    const backupService = new DatabaseBackupService();
+    setPassphraseModal((prev) => ({ ...prev, loading: true }));
+
+    try {
+      if (passphraseModal.mode === "export") {
+        await backupService.exportSecureBackup(passphrase, language);
+      } else if (
+        passphraseModal.mode === "import" &&
+        passphraseModal.pendingFileUri
+      ) {
+        await backupService.importSecureBackup(
+          passphraseModal.pendingFileUri,
+          passphrase,
+          language,
+        );
+      }
+    } finally {
+      setPassphraseModal({ visible: false, mode: "export", loading: false });
+    }
+  };
+
+  const handlePassphraseCancel = () => {
+    setPassphraseModal({ visible: false, mode: "export", loading: false });
   };
 
   const handleWipeData = () => {
     Alert.alert(
-      "Borrar Datos",
-      "Esto eliminará permanentemente la base de datos local. ¿Estás seguro?",
+      t.settings.deleteAllConfirmTitle,
+      t.settings.deleteAllConfirmMsg,
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t.common.cancel, style: "cancel" },
         {
-          text: "Borrar",
+          text: t.common.delete,
+          style: "destructive",
           onPress: async () => {
             try {
-              // Delete tables to force a recreation on next load
               await db.execAsync(`
                 PRAGMA foreign_keys = OFF;
                 DROP TABLE IF EXISTS appointment_services;
@@ -38,141 +123,213 @@ export default function SettingsScreen() {
                 DROP TABLE IF EXISTS records;
                 PRAGMA foreign_keys = ON;
               `);
-              Alert.alert(
-                "Éxito",
-                "Plataforma reiniciada. Cierra y vuelve a abrir la app entera.",
-                [{ text: "Entendido" }],
-              );
+              Alert.alert(t.common.success, t.settings.deleteAllSuccess, [
+                { text: t.common.understood },
+              ]);
             } catch (error) {
               console.error(error);
-              Alert.alert("Error", "No se pudo limpiar la base de datos.");
+              Alert.alert(t.common.error, t.settings.deleteAllError);
             }
           },
-          style: "destructive",
         },
       ],
     );
   };
 
   const handleAdvancePress = () => {
-    const options = [
-      "Cancelar",
-      "A la hora exacta",
-      "15 minutos antes",
-      "30 minutos antes",
-      "1 hora antes",
-    ];
-    const values = [null, 0, 15, 30, 60];
-
-    // Simple Alert for cross-platform (ActionSheetIOS can be used in a pure iOS build)
-    Alert.alert(
-      "Antelación de recordatorio",
-      "¿Con cuánto tiempo de anticipación deseas recibir la alarma?",
-      options.map((opt, index) => ({
-        text: opt,
-        style: index === 0 ? "cancel" : "default",
-        onPress: () => {
-          if (index > 0) {
-            updateSettings({ notificationAdvanceMin: values[index] as number });
-          }
-        },
-      })),
-    );
+    Alert.alert(t.settings.reminderAdvance, "", [
+      { text: t.common.cancel, style: "cancel" },
+      {
+        text: t.settings.reminderAtTimeLabel,
+        onPress: () => updateSettings({ notificationAdvanceMin: 0 }),
+      },
+      {
+        text: t.settings.reminder15minLabel,
+        onPress: () => updateSettings({ notificationAdvanceMin: 15 }),
+      },
+      {
+        text: t.settings.reminder30minLabel,
+        onPress: () => updateSettings({ notificationAdvanceMin: 30 }),
+      },
+      {
+        text: t.settings.reminder1hourLabel,
+        onPress: () => updateSettings({ notificationAdvanceMin: 60 }),
+      },
+    ]);
   };
 
-  const formatAdvance = (mins: number) => {
-    if (mins === 0) return "A la hora";
-    if (mins === 60) return "1 hora antes";
-    return `${mins} min antes`;
+  const formatAdvance = (mins: number): string => {
+    if (mins === 0) return t.settings.reminderAtTime;
+    if (mins === 60) return t.settings.reminder1hour;
+    if (mins === 30) return t.settings.reminder30min;
+    return t.settings.reminder15min;
   };
 
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.headerTitle}>Configuración</Text>
+    <>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {t.settings.title}
+        </Text>
 
-      <Text style={styles.sectionTitle}>Negocio</Text>
-      <View style={styles.sectionContainer}>
-        <SettingsItem
-          icon="list.bullet"
-          title="Mis Servicios"
-          subtitle="Administra los precios y servicios que ofreces"
-          type="link"
-          onPress={handleServicesNav}
-        />
-        {/* Futuro: Personal, Métodos de Pago, etc. */}
-      </View>
-
-      <Text style={styles.sectionTitle}>Preferencias App</Text>
-      <View style={styles.sectionContainer}>
-        <SettingsItem
-          icon="moon.fill"
-          title="Modo Oscuro"
-          type="switch"
-          value={darkMode}
-          onValueChange={(val) => updateSettings({ darkMode: val })}
-        />
-        <SettingsItem
-          icon="bell.fill"
-          title="Notificaciones Push"
-          type="switch"
-          value={notificationsEnabled}
-          onValueChange={(val) => updateSettings({ notificationsEnabled: val })}
-        />
-        {notificationsEnabled && (
+        {/* ----- Business ----- */}
+        <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+          {t.settings.business}
+        </Text>
+        <View
+          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
+        >
           <SettingsItem
-            icon="clock.fill"
-            title="Antelación del aviso"
-            type="select"
-            value={formatAdvance(notificationAdvanceMin)}
-            onPress={handleAdvancePress}
+            icon="list.bullet"
+            title={t.settings.myServices}
+            subtitle={t.settings.myServicesSubtitle}
+            type="link"
+            onPress={handleServicesNav}
           />
-        )}
-      </View>
+          <SettingsItem
+            icon="doc.text.fill"
+            title={t.settings.exportPdf}
+            subtitle={t.settings.exportPdfSubtitle}
+            type="action"
+            onPress={handleGenerateReport}
+          />
+        </View>
 
-      <Text style={styles.sectionTitle}>Datos Avanzados</Text>
-      <View style={styles.sectionContainer}>
-        <SettingsItem
-          icon="trash.fill"
-          title="Borrar Todos los Datos"
-          subtitle="Acción destructiva (Reset)"
-          type="action"
-          destructive
-          onPress={handleWipeData}
-        />
-      </View>
-    </ScrollView>
+        {/* ----- App Preferences ----- */}
+        <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+          {t.settings.appPreferences}
+        </Text>
+        <View
+          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
+        >
+          <SettingsItem
+            icon="globe"
+            title={t.settings.language}
+            type="select"
+            value={language === "es" ? "Español" : "English"}
+            onPress={handleLanguagePress}
+          />
+          <SettingsItem
+            icon="moon.fill"
+            title={t.settings.darkMode}
+            type="switch"
+            value={darkMode}
+            onValueChange={(val) =>
+              updateSettings({ darkMode: val as boolean })
+            }
+          />
+          <SettingsItem
+            icon="bell.fill"
+            title={t.settings.notifications}
+            type="switch"
+            value={notificationsEnabled}
+            onValueChange={(val) =>
+              updateSettings({ notificationsEnabled: val as boolean })
+            }
+          />
+          <SettingsItem
+            icon="lock.fill"
+            title={t.settings.biometrics}
+            subtitle={t.settings.biometricsSubtitle}
+            type="switch"
+            value={biometricLockEnabled}
+            onValueChange={(val) =>
+              updateSettings({ biometricLockEnabled: val as boolean })
+            }
+          />
+          {notificationsEnabled && (
+            <SettingsItem
+              icon="clock.fill"
+              title={t.settings.reminderAdvance}
+              type="select"
+              value={formatAdvance(notificationAdvanceMin)}
+              onPress={handleAdvancePress}
+            />
+          )}
+        </View>
+
+        {/* ----- Advanced Data ----- */}
+        <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+          {t.settings.advancedData}
+        </Text>
+        <View
+          style={[styles.sectionContainer, { backgroundColor: colors.card }]}
+        >
+          <SettingsItem
+            icon="arrow.up.doc.fill"
+            title={t.settings.exportBackup}
+            subtitle={t.settings.exportBackupSubtitle}
+            type="action"
+            onPress={handleExportDb}
+          />
+          <SettingsItem
+            icon="arrow.down.doc.fill"
+            title={t.settings.importBackup}
+            subtitle={t.settings.importBackupSubtitle}
+            type="action"
+            onPress={handleImportDb}
+          />
+          <SettingsItem
+            icon="trash.fill"
+            title={t.settings.deleteAll}
+            subtitle={t.settings.deleteAllSubtitle}
+            type="action"
+            destructive
+            onPress={handleWipeData}
+          />
+        </View>
+      </ScrollView>
+
+      {/* Passphrase modal (outside ScrollView so it renders above everything) */}
+      <PassphraseModal
+        visible={passphraseModal.visible}
+        mode={passphraseModal.mode}
+        loading={passphraseModal.loading}
+        onConfirm={handlePassphraseConfirm}
+        onCancel={handlePassphraseCancel}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    marginTop: 40,
-    backgroundColor: "#f9f9f9",
+  container: { flex: 1 },
+  scrollContent: {
+    padding: 16,
+    paddingTop: 60,
+    paddingBottom: 120,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontSize: 34,
+    fontWeight: "800",
+    marginBottom: 24,
+    letterSpacing: -0.5,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#8E8E93",
+    fontSize: 13,
+    fontWeight: "700",
     textTransform: "uppercase",
-    marginBottom: 8,
-    marginTop: 15,
+    letterSpacing: 1.2,
+    marginBottom: 10,
+    marginTop: 24,
+    marginLeft: 4,
   },
   sectionContainer: {
-    backgroundColor: "#fff",
     borderRadius: 12,
-    overflow: "hidden", // ensures borders of child items match border radius
-    marginBottom: 10,
+    overflow: "hidden",
     shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 2,
+    borderWidth: 1,
+    borderColor: "transparent",
   },
 });

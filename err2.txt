@@ -1,0 +1,4 @@
+src/application/services/DatabaseBackupService.ts(3,5): error TS2305: Module '"expo-file-system"' has no exported member 'cacheDirectory'.
+src/application/services/DatabaseBackupService.ts(5,5): error TS2305: Module '"expo-file-system"' has no exported member 'documentDirectory'.
+src/application/services/PdfReportService.ts(55,50): error TS2554: Expected 1-2 arguments, but got 3.
+src/application/services/PdfReportService.ts(125,21): error TS2554: Expected 1-2 arguments, but got 3.

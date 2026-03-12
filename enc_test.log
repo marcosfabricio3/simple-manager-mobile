@@ -1,0 +1,73 @@
+﻿node.exe : PASS src/application/
+services/__tests__/EncryptionSer
+vice.test.ts
+En C:\Program 
+Files\nodejs\npx.ps1: 29 
+Carácter: 3
++   & $NODE_EXE $NPX_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : N 
+   otSpecified: (PASS src/appl  
+  ic...Service.test.ts:String   
+ ) [], RemoteException
+    + FullyQualifiedErrorId : N 
+   ativeCommandError
+ 
+  EncryptionService 
+(AES-256-GCM)
+    ÔêÜ should round-trip a 
+simple ASCII string (110 ms)
+    ÔêÜ should round-trip a 
+string with accented characters 
+(1 ms)
+    ÔêÜ should round-trip a 
+phone number string (1 ms)
+    ÔêÜ should round-trip a 
+long text (notes field)
+    ÔêÜ encrypted string should 
+start with enc_v2:
+    ÔêÜ payload after enc_v2: 
+should have exactly two 
+dot-separated parts (iv + 
+ciphertext) (1 ms)
+    ÔêÜ should produce 
+different ciphertexts for the 
+same plaintext (unique IV per 
+call)
+    ÔêÜ should return empty 
+string when encrypting empty 
+string
+    ÔêÜ should return empty 
+string when decrypting null (1 
+ms)
+    ÔêÜ should return empty 
+string when decrypting undefined
+    ÔêÜ should return the input 
+as-is for unrecognized format 
+(no prefix) (1 ms)
+    ÔêÜ should decrypt legacy 
+enc_v1 Base64 data (ASCII)
+    ÔêÜ should decrypt legacy 
+enc_v1 Base64 data (with 
+Spanish accents)
+    ÔêÜ should store a new key 
+in SecureStore on first encrypt 
+(1 ms)
+    ÔêÜ should not store a new 
+key if one already exists in 
+SecureStore (1 ms)
+    ÔêÜ should reuse the 
+in-memory cached key across 
+multiple calls
+    ÔêÜ clearKeyCache() should 
+remove the cached CryptoKey (1 
+ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        1.628 s
+Ran all test suites matching 
+/EncryptionService.test/i.

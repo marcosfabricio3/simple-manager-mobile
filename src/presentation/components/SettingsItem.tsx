@@ -1,6 +1,15 @@
 import { IconSymbol, IconSymbolName } from "@/components/ui/icon-symbol";
+import { Colors } from "@/constants/theme";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import React from "react";
-import { StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export interface SettingsItemProps {
   icon: IconSymbolName;
@@ -9,7 +18,7 @@ export interface SettingsItemProps {
   onPress?: () => void;
   type?: "link" | "switch" | "action" | "select";
   value?: boolean | string;
-  onValueChange?: (value: any) => void;
+  onValueChange?: (value: boolean | string) => void;
   destructive?: boolean;
 }
 
@@ -23,53 +32,82 @@ export function SettingsItem({
   onValueChange,
   destructive = false,
 }: SettingsItemProps) {
+  const { darkMode } = useSettingsStore();
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
+
   const content = (
     <View style={styles.container}>
       <View
         style={[
           styles.iconContainer,
-          destructive && styles.destructiveIconBackground,
+          {
+            backgroundColor: destructive
+              ? colors.danger + "15"
+              : colors.primary + "10",
+          },
         ]}
       >
         <IconSymbol
           name={icon}
-          size={22}
-          color={destructive ? "#fff" : "#007AFF"}
+          size={18}
+          color={destructive ? colors.danger : colors.primary}
         />
       </View>
       <View style={styles.textContainer}>
-        <Text style={[styles.title, destructive && styles.destructiveText]}>
+        <Text
+          style={[
+            styles.title,
+            { color: destructive ? colors.danger : colors.text },
+          ]}
+        >
           {title}
         </Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        {subtitle && (
+          <Text style={[styles.subtitle, { color: colors.subtext }]}>
+            {subtitle}
+          </Text>
+        )}
       </View>
       <View style={styles.actionContainer}>
         {type === "switch" && (
           <Switch
             value={value as boolean}
             onValueChange={onValueChange}
-            trackColor={{ false: "#767577", true: "#34C759" }}
+            trackColor={{ false: "#767577", true: colors.success }}
+            thumbColor={
+              Platform.OS === "ios"
+                ? undefined
+                : value
+                  ? colors.secondary
+                  : "#f4f3f4"
+            }
           />
         )}
         {type === "select" && (
           <View style={styles.selectActionContainer}>
-            <Text style={styles.selectValue}>{value}</Text>
-            <IconSymbol name="chevron.right" size={20} color="#C7C7CC" />
+            <Text style={[styles.selectValue, { color: colors.subtext }]}>
+              {value}
+            </Text>
+            <IconSymbol name="chevron.right" size={16} color={colors.icon} />
           </View>
         )}
         {type === "link" && (
-          <IconSymbol name="chevron.right" size={20} color="#C7C7CC" />
+          <IconSymbol name="chevron.right" size={16} color={colors.icon} />
         )}
       </View>
     </View>
   );
 
-  if (type === "switch") {
-    return <View style={styles.wrapper}>{content}</View>;
-  }
-
   return (
-    <TouchableOpacity style={styles.wrapper} onPress={onPress}>
+    <TouchableOpacity
+      disabled={type === "switch"}
+      style={[
+        styles.wrapper,
+        { backgroundColor: colors.card, borderBottomColor: colors.border },
+      ]}
+      onPress={onPress}
+    >
       {content}
     </TouchableOpacity>
   );
@@ -77,26 +115,21 @@ export function SettingsItem({
 
 const styles = StyleSheet.create({
   wrapper: {
-    backgroundColor: "#fff",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   container: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E5EA",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: 8,
-    backgroundColor: "#E5F1FF",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
-  },
-  destructiveIconBackground: {
-    backgroundColor: "#FF3B30",
+    marginRight: 14,
   },
   textContainer: {
     flex: 1,
@@ -104,19 +137,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#000",
-  },
-  destructiveText: {
-    color: "#FF3B30",
+    fontWeight: "600",
   },
   subtitle: {
-    fontSize: 13,
-    color: "#8E8E93",
+    fontSize: 12,
+    fontWeight: "400",
     marginTop: 2,
   },
   actionContainer: {
-    marginLeft: 16,
+    marginLeft: 8,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -125,8 +154,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   selectValue: {
-    fontSize: 16,
-    color: "#8E8E93",
-    marginRight: 8,
+    fontSize: 14,
+    fontWeight: "600",
+    marginRight: 6,
   },
 });

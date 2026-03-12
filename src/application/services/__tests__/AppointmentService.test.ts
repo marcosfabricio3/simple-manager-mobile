@@ -1,10 +1,11 @@
-import { AppointmentRepository } from "../../../infraestructure/repositories/AppointmentRepository";
-import { ClientRepository } from "../../../infraestructure/repositories/ClientRepository";
+import { AppointmentRepository } from "../../../infrastructure/repositories/AppointmentRepository";
+import { ClientRepository } from "../../../infrastructure/repositories/ClientRepository";
 import { AppointmentService } from "../AppointmentService";
 
 // Mock repositories to isolate logic
-jest.mock("../../../infraestructure/repositories/AppointmentRepository");
-jest.mock("../../../infraestructure/repositories/ClientRepository");
+jest.mock("../../../infrastructure/repositories/AppointmentRepository");
+jest.mock("../../../infrastructure/repositories/ClientRepository");
+jest.mock("../../../infrastructure/services/ExpoNotificationService");
 
 describe("AppointmentService (Application Layer)", () => {
   let service: AppointmentService;

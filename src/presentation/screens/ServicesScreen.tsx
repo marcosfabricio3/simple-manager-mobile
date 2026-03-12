@@ -1,22 +1,30 @@
 import { useToast } from "@/components/context/ToastContext";
+import { Colors } from "@/constants/theme";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { Service } from "@/src/domain/entities/Service";
+import { EmptyState } from "@/src/presentation/components/EmptyState";
 import { ServiceCard } from "@/src/presentation/components/ServiceCard";
 import { useServices } from "@/src/presentation/hooks/useServices";
 import { useState } from "react";
 import {
-    Alert,
-    Button,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function ServicesScreen() {
-  const { services, create, remove, update, existsByName } = useServices();
+  const { services, create, remove, update } = useServices();
+  const { darkMode } = useSettingsStore();
+
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
 
   const [name, setName] = useState("");
   const [defaultPrice, setDefaultPrice] = useState("");
@@ -27,25 +35,16 @@ export default function ServicesScreen() {
 
   const handleSubmit = async () => {
     const cleanName = name.trim();
-    const cleanColor = color.trim() || "#007AFF";
+    const cleanColor = color.trim() || colors.primary;
     const parsedPrice = parseFloat(defaultPrice);
 
     if (!cleanName) {
-      addToast("El nombre del servicio es obligatorio", "warning");
+      addToast("El nombre es obligatorio", "warning");
       return;
     }
-
-    if (isNaN(parsedPrice) || parsedPrice < 0) {
-      addToast("El precio debe ser un número válido mayor a 0", "warning");
+    if (isNaN(parsedPrice)) {
+      addToast("El precio debe ser un número", "warning");
       return;
-    }
-
-    if (!editing) {
-      const exists = await existsByName(cleanName);
-      if (exists) {
-        addToast("Ya existe un servicio con ese nombre", "warning");
-        return;
-      }
     }
 
     try {
@@ -56,21 +55,17 @@ export default function ServicesScreen() {
           defaultPrice: parsedPrice,
           color: cleanColor,
         });
-        addToast("Servicio actualizado correctamente", "success");
+        addToast("Servicio actualizado", "success");
         setEditing(null);
       } else {
         await create(cleanName, parsedPrice, cleanColor);
-        addToast("Servicio creado correctamente", "success");
+        addToast("Servicio creado", "success");
       }
-
       setName("");
       setDefaultPrice("");
       setColor("");
     } catch (error) {
-      addToast(
-        error instanceof Error ? error.message : "Error inesperado",
-        "error",
-      );
+      addToast("Error al guardar", "error");
     }
   };
 
@@ -82,87 +77,125 @@ export default function ServicesScreen() {
   };
 
   const confirmDelete = (id: string) => {
-    Alert.alert(
-      "Eliminar servicio",
-      "¿Estás seguro de que quieres eliminar este servicio? No aparecerá para nuevos turnos.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          onPress: () => handleDelete(id),
-          style: "destructive",
-        },
-      ],
-    );
+    Alert.alert("Borrar servicio", "¿Estás seguro?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        onPress: () => handleDelete(id),
+        style: "destructive",
+      },
+    ]);
   };
 
   const handleDelete = async (id: string) => {
     try {
       await remove(id);
-      addToast("Servicio eliminado correctamente", "info");
+      addToast("Servicio eliminado", "info");
     } catch (error) {
-      addToast(
-        error instanceof Error ? error.message : "Error inesperado",
-        "error",
-      );
+      addToast("Error al eliminar", "error");
     }
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View style={styles.formContainer}>
-        <Text style={styles.sectionTitle}>
-          {editing ? "Editar Servicio" : "Nuevo Servicio"}
-        </Text>
-        <TextInput
-          placeholder="Nombre del servicio (Ej: Consulta 1hr)"
-          value={name}
-          onChangeText={setName}
-          style={styles.input}
-        />
-        <TextInput
-          placeholder="Precio por defecto (Ej: 1500)"
-          value={defaultPrice}
-          onChangeText={setDefaultPrice}
-          keyboardType="numeric"
-          style={styles.input}
-        />
-        <TextInput
-          placeholder="Color Hexadecimal (Ej: #FF0000) Opcional"
-          value={color}
-          onChangeText={setColor}
-          autoCapitalize="none"
-          style={styles.input}
-        />
-        <Button
-          title={editing ? "Actualizar" : "Guardar Servicio"}
-          onPress={handleSubmit}
-        />
-        {editing && (
-          <View style={{ marginTop: 10 }}>
-            <Button
-              title="Cancelar Edición"
-              color="red"
-              onPress={() => {
-                setEditing(null);
-                setName("");
-                setDefaultPrice("");
-                setColor("");
-              }}
-            />
-          </View>
-        )}
-      </View>
+      <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
 
       <FlatList
         data={services}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>
+              Servicios
+            </Text>
+
+            <View
+              style={[
+                styles.form,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Text style={[styles.label, { color: colors.subtext }]}>
+                {editing ? "Editar Servicio" : "Nuevo Servicio"}
+              </Text>
+
+              <TextInput
+                placeholder="Nombre del tratamiento"
+                placeholderTextColor={colors.subtext + "80"}
+                value={name}
+                onChangeText={setName}
+                style={[
+                  styles.input,
+                  { borderColor: colors.border, color: colors.text },
+                ]}
+              />
+              <TextInput
+                placeholder="Precio base ($)"
+                placeholderTextColor={colors.subtext + "80"}
+                value={defaultPrice}
+                onChangeText={setDefaultPrice}
+                keyboardType="numeric"
+                style={[
+                  styles.input,
+                  { borderColor: colors.border, color: colors.text },
+                ]}
+              />
+              <TextInput
+                placeholder="Color Hex (ej: #FF0000)"
+                placeholderTextColor={colors.subtext + "80"}
+                value={color}
+                onChangeText={setColor}
+                autoCapitalize="none"
+                style={[
+                  styles.input,
+                  { borderColor: colors.border, color: colors.text },
+                ]}
+              />
+
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={[
+                    styles.submitBtn,
+                    { backgroundColor: colors.primary },
+                  ]}
+                  onPress={handleSubmit}
+                >
+                  <Text style={styles.submitBtnText}>
+                    {editing ? "Guardar" : "Añadir Servicio"}
+                  </Text>
+                </TouchableOpacity>
+                {editing && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditing(null);
+                      setName("");
+                      setDefaultPrice("");
+                      setColor("");
+                    }}
+                    style={[styles.cancelBtn, { borderColor: colors.border }]}
+                  >
+                    <Text
+                      style={[styles.cancelBtnText, { color: colors.subtext }]}
+                    >
+                      Anular
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </>
+        }
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No hay servicios registrados.</Text>
+          <EmptyState
+            iconName="list-alt"
+            title="Sin registros"
+            description="Añade los servicios que ofreces en tu clínica."
+          />
         }
         renderItem={({ item }) => (
           <ServiceCard
@@ -179,38 +212,67 @@ export default function ServicesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f9f9f9",
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 10,
-    color: "#333",
+  listContent: {
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 40,
   },
-  formContainer: {
-    backgroundColor: "white",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    marginBottom: 24,
+    letterSpacing: -0.5,
+  },
+  form: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: 24,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 12,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 6,
-    backgroundColor: "#fff",
+    padding: 14,
+    borderRadius: 10,
+    fontSize: 15,
+    marginBottom: 12,
   },
-  emptyText: {
-    textAlign: "center",
-    color: "#888",
-    marginTop: 20,
-    fontSize: 16,
+  actionRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  submitBtn: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  submitBtnText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  cancelBtn: {
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  cancelBtnText: {
+    fontWeight: "700",
+    fontSize: 15,
   },
 });

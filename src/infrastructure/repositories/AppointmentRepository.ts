@@ -1,8 +1,16 @@
+import { generateId } from "../../application/utils/id";
 import {
     Appointment,
     AppointmentWithDetails,
 } from "../../domain/entities/Appointment";
 import { db } from "../database/database";
+
+interface ServiceJsonRow {
+  id: string;
+  name: string;
+  color: string;
+  price: number;
+}
 
 interface AppointmentJoinedRow {
   id: string;
@@ -17,11 +25,11 @@ interface AppointmentJoinedRow {
   isDeleted: number;
   clientName: string;
   clientPhone?: string;
+  servicesJson: string; // From JSON_GROUP_ARRAY
   serviceId?: string;
   serviceName?: string;
   serviceDefaultPrice?: number;
   serviceColor?: string;
-  serviceDefaultDuration?: number;
 }
 
 export class AppointmentRepository {
@@ -54,7 +62,7 @@ export class AppointmentRepository {
       // As we didn't inject IDs for the pivot from the domain for simplicity,
       // we can rely on SQLite's random hex function or simply JS generation
       for (const serviceId of serviceIds) {
-        const pivotId = Math.random().toString(36).substring(2, 15); // Quick unique ID fallback
+        const pivotId = generateId();
 
         await db.runAsync(
           `INSERT INTO appointment_services (
@@ -72,9 +80,7 @@ export class AppointmentRepository {
   }
 
   async findUpcoming(): Promise<AppointmentWithDetails[]> {
-    // This query pulls the appointments, joins the client, and aggregates all services into a JSON string
-    // which we then parse back in JavaScript. It relies on SQLite's standard JSON operator support in Expo.
-    const rows = await db.getAllAsync<any>(`
+    const rows = await db.getAllAsync<AppointmentJoinedRow>(`
         SELECT 
             a.*,
             c.name as clientName,
@@ -102,11 +108,8 @@ export class AppointmentRepository {
     `);
 
     return rows.map((r): AppointmentWithDetails => {
-      const services = JSON.parse(r.servicesJson);
-      const totalPrice = services.reduce(
-        (sum: number, s: any) => sum + s.price,
-        0,
-      );
+      const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
+      const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
       return {
         id: r.id,
@@ -137,7 +140,7 @@ export class AppointmentRepository {
     startDateIso: string,
     endDateIso: string,
   ): Promise<AppointmentWithDetails[]> {
-    const rows = await db.getAllAsync<any>(
+    const rows = await db.getAllAsync<AppointmentJoinedRow>(
       `
         SELECT 
             a.*,
@@ -169,11 +172,8 @@ export class AppointmentRepository {
     );
 
     return rows.map((r): AppointmentWithDetails => {
-      const services = JSON.parse(r.servicesJson);
-      const totalPrice = services.reduce(
-        (sum: number, s: any) => sum + s.price,
-        0,
-      );
+      const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
+      const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
       return {
         id: r.id,
@@ -196,7 +196,7 @@ export class AppointmentRepository {
 
   async findToday(): Promise<AppointmentWithDetails[]> {
     // Uses date() function in SQLite to match local ISO string slices
-    const rows = await db.getAllAsync<any>(`
+    const rows = await db.getAllAsync<AppointmentJoinedRow>(`
         SELECT 
             a.*,
             c.name as clientName,
@@ -224,11 +224,8 @@ export class AppointmentRepository {
     `);
 
     return rows.map((r): AppointmentWithDetails => {
-      const services = JSON.parse(r.servicesJson);
-      const totalPrice = services.reduce(
-        (sum: number, s: any) => sum + s.price,
-        0,
-      );
+      const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
+      const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
       return {
         id: r.id,
@@ -256,7 +253,7 @@ export class AppointmentRepository {
   }
 
   async getClientMetrics(clientId: string) {
-    const rows = await db.getAllAsync<any>(
+    const rows = await db.getAllAsync<AppointmentJoinedRow>(
       `
         SELECT 
             a.*,
@@ -287,11 +284,8 @@ export class AppointmentRepository {
     );
 
     const history = rows.map((r): AppointmentWithDetails => {
-      const services = JSON.parse(r.servicesJson);
-      const totalPrice = services.reduce(
-        (sum: number, s: any) => sum + s.price,
-        0,
-      );
+      const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
+      const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
       return {
         id: r.id,
@@ -456,7 +450,7 @@ export class AppointmentRepository {
 
       // 3. Insert new pivot rows
       for (const serviceId of serviceIds) {
-        const pivotId = Math.random().toString(36).substring(2, 15);
+        const pivotId = generateId();
         await db.runAsync(
           `INSERT INTO appointment_services (id, appointmentId, serviceId, createdAt) VALUES (?, ?, ?, ?)`,
           [pivotId, appointment.id, serviceId, new Date().toISOString()],

@@ -6,7 +6,11 @@ interface SettingsState {
   notificationsEnabled: boolean;
   notificationAdvanceMin: number;
   darkMode: boolean;
+  biometricLockEnabled: boolean;
+  language: "en" | "es";
+  hasSeenOnboarding: boolean;
   updateSettings: (settings: Partial<SettingsState>) => void;
+  setHasSeenOnboarding: () => void;
 }
 
 const secureStorage = {
@@ -27,7 +31,11 @@ export const useSettingsStore = create<SettingsState>()(
       notificationsEnabled: true,
       notificationAdvanceMin: 15,
       darkMode: false,
+      biometricLockEnabled: true,
+      language: "es",
+      hasSeenOnboarding: false,
       updateSettings: (settings) => set((state) => ({ ...state, ...settings })),
+      setHasSeenOnboarding: () => set({ hasSeenOnboarding: true }),
     }),
     {
       name: "app-settings-storage",

@@ -1,18 +1,21 @@
+import { Colors } from "@/constants/theme";
 import { AppointmentService } from "@/src/application/services/AppointmentService";
+import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
 import { Client } from "@/src/domain/entities/Client";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  LayoutAnimation,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface ClientProfileModalProps {
@@ -39,6 +42,10 @@ export function ClientProfileModal({
 }: ClientProfileModalProps) {
   const [metrics, setMetrics] = useState<ClientMetrics | null>(null);
   const [loading, setLoading] = useState(false);
+  const { darkMode } = useSettingsStore();
+
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
 
   useEffect(() => {
     if (visible && client) {
@@ -67,6 +74,7 @@ export function ClientProfileModal({
       const newStatus = currentStatus === "paid" ? "unpaid" : "paid";
       const service = new AppointmentService();
       await service.updatePaymentStatus(appointmentId, newStatus);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       await loadMetrics(); // Refresh data
     } catch (e) {
       console.error(e);
@@ -85,6 +93,9 @@ export function ClientProfileModal({
             try {
               const service = new AppointmentService();
               await service.updateStatus(appointmentId, "cancelled");
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
               await loadMetrics();
             } catch (e) {
               console.error(e);
@@ -97,6 +108,9 @@ export function ClientProfileModal({
             try {
               const service = new AppointmentService();
               await service.delete(appointmentId);
+              LayoutAnimation.configureNext(
+                LayoutAnimation.Presets.easeInEaseOut,
+              );
               await loadMetrics();
             } catch (e) {
               console.error(e);
@@ -129,21 +143,35 @@ export function ClientProfileModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{client.name}</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.card, borderBottomColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.title, { color: colors.text }]}>
+            {client.name}
+          </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             {onEditClient && (
               <TouchableOpacity
                 onPress={() => onEditClient(client)}
-                style={styles.editBtn}
+                style={[
+                  styles.editBtn,
+                  {
+                    backgroundColor: darkMode
+                      ? colors.secondaryBackground
+                      : "#F0F8FF",
+                  },
+                ]}
               >
                 <MaterialIcons name="edit" size={20} color="#007AFF" />
                 <Text style={styles.editBtnText}>Editar</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialIcons name="close" size={24} color="#000" />
+              <MaterialIcons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -151,41 +179,127 @@ export function ClientProfileModal({
         {loading || !metrics ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.loadingText}>Cargando historial...</Text>
+            <Text style={[styles.loadingText, { color: colors.subtext }]}>
+              Cargando historial...
+            </Text>
           </View>
         ) : (
           <View style={styles.content}>
             <View style={styles.metricsGrid}>
-              <View style={[styles.metricCard, { backgroundColor: "#E3F2FD" }]}>
-                <Text style={styles.metricLabel}>Turnos</Text>
-                <Text style={[styles.metricValue, { color: "#1976D2" }]}>
+              <View
+                style={[
+                  styles.metricCard,
+                  {
+                    backgroundColor: darkMode
+                      ? "rgba(25, 118, 210, 0.2)"
+                      : "#E3F2FD",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.metricLabel,
+                    { color: darkMode ? colors.subtext : "#666" },
+                  ]}
+                >
+                  Turnos
+                </Text>
+                <Text
+                  style={[
+                    styles.metricValue,
+                    { color: darkMode ? colors.text : "#1976D2" },
+                  ]}
+                >
                   {metrics.totalAppointments}
                 </Text>
               </View>
-              <View style={[styles.metricCard, { backgroundColor: "#FFF3E0" }]}>
-                <Text style={styles.metricLabel}>Cancelados</Text>
-                <Text style={[styles.metricValue, { color: "#E65100" }]}>
+              <View
+                style={[
+                  styles.metricCard,
+                  {
+                    backgroundColor: darkMode
+                      ? "rgba(230, 81, 0, 0.2)"
+                      : "#FFF3E0",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.metricLabel,
+                    { color: darkMode ? colors.subtext : "#666" },
+                  ]}
+                >
+                  Cancelados
+                </Text>
+                <Text
+                  style={[
+                    styles.metricValue,
+                    { color: darkMode ? colors.text : "#E65100" },
+                  ]}
+                >
                   {metrics.cancelledAppointments}
                 </Text>
               </View>
             </View>
             <View style={styles.metricsGrid}>
-              <View style={[styles.metricCard, { backgroundColor: "#FFEBEE" }]}>
-                <Text style={styles.metricLabel}>Deuda</Text>
-                <Text style={[styles.metricValue, { color: "#D32F2F" }]}>
+              <View
+                style={[
+                  styles.metricCard,
+                  {
+                    backgroundColor: darkMode
+                      ? "rgba(211, 47, 47, 0.2)"
+                      : "#FFEBEE",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.metricLabel,
+                    { color: darkMode ? colors.subtext : "#666" },
+                  ]}
+                >
+                  Deuda
+                </Text>
+                <Text
+                  style={[
+                    styles.metricValue,
+                    { color: darkMode ? colors.text : "#D32F2F" },
+                  ]}
+                >
                   ${metrics.totalDebt}
                 </Text>
               </View>
-              <View style={[styles.metricCard, { backgroundColor: "#E8F5E9" }]}>
-                <Text style={styles.metricLabel}>Gastado</Text>
-                <Text style={[styles.metricValue, { color: "#388E3C" }]}>
+              <View
+                style={[
+                  styles.metricCard,
+                  {
+                    backgroundColor: darkMode
+                      ? "rgba(56, 142, 60, 0.2)"
+                      : "#E8F5E9",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.metricLabel,
+                    { color: darkMode ? colors.subtext : "#666" },
+                  ]}
+                >
+                  Gastado
+                </Text>
+                <Text
+                  style={[
+                    styles.metricValue,
+                    { color: darkMode ? colors.text : "#388E3C" },
+                  ]}
+                >
                   ${metrics.totalSpent}
                 </Text>
               </View>
             </View>
 
             <View style={styles.metricsRow}>
-              <Text style={styles.minorMetric}>
+              <Text style={[styles.minorMetric, { color: colors.subtext }]}>
                 Próximo Turno:{" "}
                 {metrics.nextPending
                   ? new Date(metrics.nextPending).toLocaleDateString()
@@ -194,10 +308,24 @@ export function ClientProfileModal({
             </View>
 
             <View style={styles.notesContainer}>
-              <Text style={styles.sectionTitle}>Notas Clínicas / Extras</Text>
-              <View style={styles.notesBox}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Notas del Cliente
+              </Text>
+              <View
+                style={[
+                  styles.notesBox,
+                  {
+                    backgroundColor: darkMode ? colors.card : "#FFF9C4",
+                    borderColor: darkMode ? colors.border : "#FFF59D",
+                  },
+                ]}
+              >
                 <Text
-                  style={client.notes ? styles.notesText : styles.notesEmpty}
+                  style={
+                    client.notes
+                      ? [styles.notesText, { color: colors.text }]
+                      : styles.notesEmpty
+                  }
                 >
                   {client.notes
                     ? client.notes
@@ -206,22 +334,29 @@ export function ClientProfileModal({
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>Historial de Turnos</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Historial de Turnos
+            </Text>
 
             <FlatList
               data={metrics.history}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ paddingBottom: 40 }}
               ListEmptyComponent={
-                <Text style={styles.emptyText}>
+                <Text style={[styles.emptyText, { color: colors.subtext }]}>
                   Este cliente no tiene turnos registrados aún.
                 </Text>
               }
               renderItem={({ item }) => (
-                <View style={styles.appointmentCard}>
+                <View
+                  style={[
+                    styles.appointmentCard,
+                    { backgroundColor: colors.card },
+                  ]}
+                >
                   <View style={styles.appHeader}>
                     <View>
-                      <Text style={styles.appDate}>
+                      <Text style={[styles.appDate, { color: colors.text }]}>
                         {new Date(item.date).toLocaleDateString()} -{" "}
                         {new Date(item.date).toLocaleTimeString([], {
                           hour: "2-digit",
@@ -239,11 +374,13 @@ export function ClientProfileModal({
                                 ? styles.badgeWarning
                                 : styles.badgeError
                               : styles.badgeError,
+                          darkMode && { backgroundColor: "rgba(0,0,0,0.3)" },
                         ]}
                       >
                         <Text
                           style={[
                             styles.badgeText,
+                            { color: darkMode ? colors.text : "#424242" },
                             item.status === "pending" &&
                             new Date(item.date) < new Date()
                               ? { color: "#D32F2F" }
@@ -263,13 +400,27 @@ export function ClientProfileModal({
 
                     <View style={styles.appActions}>
                       <TouchableOpacity
-                        style={styles.actionIconBtn}
+                        style={[
+                          styles.actionIconBtn,
+                          {
+                            backgroundColor: darkMode
+                              ? colors.secondaryBackground
+                              : "#F2F2F7",
+                          },
+                        ]}
                         onPress={() => handleEdit(item)}
                       >
                         <MaterialIcons name="edit" size={20} color="#007AFF" />
                       </TouchableOpacity>
                       <TouchableOpacity
-                        style={styles.actionIconBtn}
+                        style={[
+                          styles.actionIconBtn,
+                          {
+                            backgroundColor: darkMode
+                              ? colors.secondaryBackground
+                              : "#F2F2F7",
+                          },
+                        ]}
                         onPress={() => confirmDelete(item.id)}
                       >
                         <MaterialIcons
@@ -281,12 +432,21 @@ export function ClientProfileModal({
                     </View>
                   </View>
 
-                  <Text style={styles.servicesList}>
+                  <Text
+                    style={[styles.servicesList, { color: colors.subtext }]}
+                  >
                     {item.services.map((s) => s.name).join(", ")}
                   </Text>
 
-                  <View style={styles.appFooter}>
-                    <Text style={styles.priceText}>${item.totalPrice}</Text>
+                  <View
+                    style={[
+                      styles.appFooter,
+                      { borderTopColor: colors.border },
+                    ]}
+                  >
+                    <Text style={[styles.priceText, { color: colors.text }]}>
+                      ${item.totalPrice}
+                    </Text>
 
                     <View
                       style={{
@@ -301,6 +461,7 @@ export function ClientProfileModal({
                           item.paymentStatus === "paid"
                             ? styles.togglePaid
                             : styles.toggleUnpaid,
+                          darkMode && { backgroundColor: "transparent" },
                         ]}
                         onPress={() =>
                           handleTogglePayment(item.id, item.paymentStatus)
@@ -332,22 +493,19 @@ export function ClientProfileModal({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F2F2F7", paddingTop: 40 },
+  container: { flex: 1, paddingTop: 40 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "white",
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E5EA",
   },
-  title: { fontSize: 22, fontWeight: "bold", color: "#1C1C1E" },
+  title: { fontSize: 22, fontWeight: "bold" },
   closeBtn: { padding: 4 },
   editBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F8FF",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
@@ -359,14 +517,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   centerContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 12, color: "#8E8E93" },
+  loadingText: { marginTop: 12 },
   content: { flex: 1, padding: 20 },
   metricsGrid: { flexDirection: "row", gap: 12, marginBottom: 16 },
   metricCard: { flex: 1, padding: 16, borderRadius: 12, alignItems: "center" },
   metricLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#666",
     marginBottom: 4,
     textTransform: "uppercase",
   },
@@ -377,22 +534,19 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 4,
   },
-  minorMetric: { fontSize: 13, color: "#8E8E93", fontWeight: "500" },
+  minorMetric: { fontSize: 13, fontWeight: "500" },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 12,
-    color: "#1C1C1E",
   },
   notesContainer: {
     marginBottom: 20,
   },
   notesBox: {
-    backgroundColor: "#FFF9C4", // Light yellow tint to resemble a sticky note
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#FFF59D",
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -401,7 +555,6 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 15,
-    color: "#424242",
     lineHeight: 22,
   },
   notesEmpty: {
@@ -413,11 +566,9 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: "center",
     fontStyle: "italic",
-    color: "#8E8E93",
     marginTop: 20,
   },
   appointmentCard: {
-    backgroundColor: "white",
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -439,26 +590,24 @@ const styles = StyleSheet.create({
   },
   actionIconBtn: {
     padding: 6,
-    backgroundColor: "#F2F2F7",
     borderRadius: 8,
   },
-  appDate: { fontSize: 15, fontWeight: "600", color: "#1C1C1E" },
+  appDate: { fontSize: 15, fontWeight: "600" },
   badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   badgeSuccess: { backgroundColor: "#E8F5E9" },
   badgeWarning: { backgroundColor: "#FFF3E0" },
   badgeError: { backgroundColor: "#FFEBEE" },
-  badgeText: { fontSize: 12, fontWeight: "600", color: "#424242" },
-  servicesList: { fontSize: 14, color: "#666", marginBottom: 12 },
+  badgeText: { fontSize: 12, fontWeight: "600" },
+  servicesList: { fontSize: 14, marginBottom: 12 },
   appFooter: {
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "stretch",
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "#F2F2F7",
     paddingTop: 8,
   },
-  priceText: { fontSize: 16, fontWeight: "bold", color: "#1C1C1E" },
+  priceText: { fontSize: 16, fontWeight: "bold" },
   toggleBtn: {
     flex: 1,
     paddingVertical: 10,

@@ -1,5 +1,5 @@
 import { Client } from "@/src/domain/entities/Client";
-import { ClientRepository } from "@/src/infraestructure/repositories/ClientRepository";
+import { ClientRepository } from "@/src/infrastructure/repositories/ClientRepository";
 
 export class ClientService {
   private repository = new ClientRepository();

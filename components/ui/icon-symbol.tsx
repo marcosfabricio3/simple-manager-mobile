@@ -29,6 +29,12 @@ const MAPPING = {
   "clock.fill": "schedule",
   calendar: "event",
   "person.3.fill": "people",
+  "doc.text.fill": "description",
+  "lock.fill": "lock",
+  "arrow.up.doc.fill": "backup",
+  "arrow.down.doc.fill": "settings-backup-restore",
+  globe: "language",
+  "chart.bar.fill": "bar-chart",
 } as IconMapping;
 
 /**

@@ -1,58 +1,73 @@
 import { getErrorMessage } from "@/src/application/errors/getErrorMessage";
 import { RecordService } from "@/src/application/services/RecordService";
 import { Record } from "@/src/domain/entities/Record";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { LayoutAnimation } from "react-native";
 
 export function useRecords() {
-    const service = useMemo(() => new RecordService(), []);
-    const [records, setRecords] = useState<Record[]>([]);
+  const service = useMemo(() => new RecordService(), []);
+  const [records, setRecords] = useState<Record[]>([]);
 
-    const load = async () => {
-        const data = await service.list();
-        setRecords(data);
-    };
+  const load = useCallback(async () => {
+    const data = await service.list();
+    setRecords(data);
+  }, [service]);
 
-    const create = async (title: string, type: string) => {
-        try {
-            await service.create(title, type);
-            await load();
-        } catch (error) {
-            throw new Error(getErrorMessage(error));
-        };
-    };
+  const create = useCallback(
+    async (title: string, type: string) => {
+      try {
+        await service.create(title, type);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    [service, load],
+  );
 
-    const update = async (record: Record) => {
-        try {
-            await service.update(record);
-            await load();
-        } catch (error) {
-            throw new Error(getErrorMessage(error));
-        };
-    };
+  const update = useCallback(
+    async (record: Record) => {
+      try {
+        await service.update(record);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    [service, load],
+  );
 
-    const remove = async (id: string) => {
-        try {
-            await service.delete(id);
-            await load();
-        } catch (error) {
-            throw new Error(getErrorMessage(error));
-        };
-    };
+  const remove = useCallback(
+    async (id: string) => {
+      try {
+        await service.delete(id);
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    [service, load],
+  );
 
-    const existsByTitle = async (title: string) => {
-        return await service.existsByTitle(title);
-    };
+  const existsByTitle = useCallback(
+    async (title: string) => {
+      return await service.existsByTitle(title);
+    },
+    [service],
+  );
 
-    useEffect(() => {
-        load();
-    }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-    return {
-        records,
-        load,
-        create,
-        update,
-        remove,
-        existsByTitle,
-    };
+  return {
+    records,
+    load,
+    create,
+    update,
+    remove,
+    existsByTitle,
+  };
 }
