@@ -32,20 +32,29 @@ export default function DashboardScreen() {
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
 
-  const stats = useMemo(() => {
+  const { stats, displayAppointments } = useMemo(() => {
+    const now = new Date();
     const pending = todayAppointments.filter((a) => a.status === "pending");
     const cancelled = todayAppointments.filter((a) => a.status === "cancelled");
-    const now = new Date();
 
-    const next = todayAppointments
-      .filter((a) => a.status === "pending" && new Date(a.date) >= now)
-      .sort((a, b) => a.date.localeCompare(b.date))[0];
+    const filtered = todayAppointments.filter((a) => {
+      const isPending = a.status === "pending";
+      const endTime = new Date(
+        new Date(a.date).getTime() + a.durationMinutes * 60000,
+      );
+      return isPending && endTime > now;
+    });
+
+    const next = filtered.sort((a, b) => a.date.localeCompare(b.date))[0];
 
     return {
-      total: todayAppointments.length,
-      pending: pending.length,
-      cancelled: cancelled.length,
-      nextClient: next ? next.clientName : t.common.none,
+      stats: {
+        total: todayAppointments.length,
+        pending: pending.length,
+        cancelled: cancelled.length,
+        nextClient: next ? next.clientName : t.common.none,
+      },
+      displayAppointments: filtered,
     };
   }, [todayAppointments, t]);
 
@@ -94,7 +103,7 @@ export default function DashboardScreen() {
       <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
 
       <FlatList
-        data={todayAppointments}
+        data={displayAppointments}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         refreshControl={
