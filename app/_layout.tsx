@@ -1,3 +1,4 @@
+import "react-native-get-random-values";
 import { ToastProvider } from "@/components/context/ToastContext";
 import { Colors } from "@/constants/theme";
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
