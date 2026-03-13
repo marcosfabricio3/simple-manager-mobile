@@ -5,6 +5,7 @@ import {
   AppointmentWithDetails,
 } from "@/src/domain/entities/Appointment";
 import { useAppointmentActions } from "@/src/presentation/hooks/useAppointmentActions";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -22,13 +23,16 @@ export function AppointmentCard({
   concise,
 }: Props) {
   const { deleteAppointmentWithPrompt } = useAppointmentActions();
-  const { darkMode } = useSettingsStore();
+  const { darkMode, language } = useSettingsStore();
+  const { t } = useI18n();
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
 
   const dateObj = new Date(appointment.date);
-  const startTime = dateObj.toLocaleTimeString([], {
+  const timeLocale = language === "es" ? "es-AR" : "en-US";
+  
+  const startTime = dateObj.toLocaleTimeString(timeLocale, {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -36,16 +40,16 @@ export function AppointmentCard({
   const endDateObj = new Date(
     dateObj.getTime() + (appointment.durationMinutes || 0) * 60000,
   );
-  const endTime = endDateObj.toLocaleTimeString([], {
+  const endTime = endDateObj.toLocaleTimeString(timeLocale, {
     hour: "2-digit",
     minute: "2-digit",
   });
 
   const StatusBadge = ({ status }: { status: AppointmentStatus }) => {
     const statusMap = {
-      pending: { color: colors.primary, label: "Pendiente" },
-      completed: { color: colors.success, label: "Completado" },
-      cancelled: { color: colors.danger, label: "Cancelado" },
+      pending: { color: colors.primary, label: t.appointments.pending },
+      completed: { color: colors.success, label: t.appointments.completed },
+      cancelled: { color: colors.danger, label: t.appointments.cancelled },
     };
     const current = statusMap[status] || statusMap.pending;
 
@@ -124,7 +128,7 @@ export function AppointmentCard({
       <View style={styles.header}>
         <View>
           <Text style={[styles.clientLabel, { color: colors.subtext }]}>
-            Cliente
+            {t.appointments.client}
           </Text>
           <Text style={[styles.clientNameLarge, { color: colors.text }]}>
             {appointment.clientName}
@@ -163,7 +167,7 @@ export function AppointmentCard({
 
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
         <Text style={[styles.totalLabel, { color: colors.subtext }]}>
-          Total:{" "}
+          {t.appointments.total}:{" "}
           <Text style={[styles.totalValue, { color: colors.text }]}>
             ${appointment.totalPrice.toFixed(2)}
           </Text>

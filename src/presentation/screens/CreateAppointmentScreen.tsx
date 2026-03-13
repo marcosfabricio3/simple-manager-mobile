@@ -6,6 +6,7 @@ import { ClientSelector } from "@/src/presentation/components/ClientSelector";
 import { useAppointments } from "@/src/presentation/hooks/useAppointments";
 import { useClients } from "@/src/presentation/hooks/useClients";
 import { useServices } from "@/src/presentation/hooks/useServices";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
@@ -27,6 +28,7 @@ export default function CreateAppointmentScreen() {
   const { services } = useServices();
   const { clients, load: loadClients } = useClients();
   const { addToast } = useToast();
+  const { t } = useI18n();
   const params = useLocalSearchParams();
 
   const [selectedClientId, setSelectedClientId] = useState<
@@ -71,15 +73,15 @@ export default function CreateAppointmentScreen() {
 
   const handleSave = async () => {
     if (!selectedClientId) {
-      addToast("Selecciona un cliente", "error");
+      addToast(t.appointments.selectClient, "error");
       return;
     }
     if (selectedServices.length === 0) {
-      addToast("Selecciona al menos un servicio", "error");
+      addToast(t.appointments.selectService, "error");
       return;
     }
     if (!dateStr || !timeStr || !endTimeStr) {
-      addToast("Completa fecha y horarios", "error");
+      addToast(t.appointments.completeFields, "error");
       return;
     }
 
@@ -92,7 +94,7 @@ export default function CreateAppointmentScreen() {
         (combinedEndDate.getTime() - combinedDate.getTime()) / 60000
       );
       if (durNum <= 0) {
-        throw new Error("La hora de fin debe ser posterior a la de inicio");
+        throw new Error(t.appointments.endAfterStart);
       }
 
       await createWithExisting(
@@ -103,7 +105,7 @@ export default function CreateAppointmentScreen() {
         notes
       );
 
-      addToast("Turno creado exitosamente", "success");
+      addToast(t.appointments.createSuccess, "success");
       router.replace("/(tabs)/appointments");
     } catch (error) {
       addToast(error instanceof Error ? error.message : "Error", "error");
@@ -144,13 +146,13 @@ export default function CreateAppointmentScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
-            Fecha y Horario del Turno
+            {t.appointments.date} & {t.appointments.startTime} / {t.appointments.endTime}
           </Text>
 
           <TouchableOpacity onPress={() => setShowDatePicker(true)}>
             <View pointerEvents="none">
               <TextInput
-                placeholder="Fecha *"
+                placeholder={`${t.appointments.date} *`}
                 placeholderTextColor={colors.subtext}
                 value={dateStr}
                 style={[
@@ -187,7 +189,7 @@ export default function CreateAppointmentScreen() {
               <TouchableOpacity onPress={() => setShowStartTimePicker(true)}>
                 <View pointerEvents="none">
                   <TextInput
-                    placeholder="Hora Inicio *"
+                    placeholder={`${t.appointments.startTime} *`}
                     placeholderTextColor={colors.subtext}
                     value={timeStr}
                     style={[
@@ -225,7 +227,7 @@ export default function CreateAppointmentScreen() {
               <TouchableOpacity onPress={() => setShowEndTimePicker(true)}>
                 <View pointerEvents="none">
                   <TextInput
-                    placeholder="Hora Fin *"
+                    placeholder={`${t.appointments.endTime} *`}
                     placeholderTextColor={colors.subtext}
                     value={endTimeStr}
                     style={[
@@ -262,7 +264,7 @@ export default function CreateAppointmentScreen() {
           {Platform.OS === "ios" &&
             (showDatePicker || showStartTimePicker || showEndTimePicker) && (
               <Button
-                title="Confirmar Selección"
+                title={t.appointments.confirmSelection}
                 onPress={() => {
                   setShowDatePicker(false);
                   setShowStartTimePicker(false);
@@ -279,11 +281,11 @@ export default function CreateAppointmentScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
-            Servicios Contratados *
+            {t.appointments.services} *
           </Text>
           {services.length === 0 ? (
             <Text style={styles.emptyText}>
-              No hay servicios. Ve a Ajustes a crearlos.
+              {t.appointments.noServices}
             </Text>
           ) : (
             services.map((svc) => {
@@ -337,10 +339,10 @@ export default function CreateAppointmentScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
-            Notas (Opcional)
+            {t.appointments.notes}
           </Text>
           <TextInput
-            placeholder="Notas interna del turno..."
+            placeholder={t.appointments.notesPlaceholder}
             placeholderTextColor={colors.subtext}
             value={notes}
             onChangeText={setNotes}
@@ -378,7 +380,7 @@ export default function CreateAppointmentScreen() {
             }}
           >
             <Text style={{ color: "white", fontWeight: "800", fontSize: 16 }}>
-              {isSubmitting ? "GUARDANDO..." : "CREAR TURNO"}
+              {isSubmitting ? t.appointments.creating : t.appointments.createCmd}
             </Text>
           </TouchableOpacity>
         </View>

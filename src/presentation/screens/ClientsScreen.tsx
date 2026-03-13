@@ -5,6 +5,7 @@ import { Client } from "@/src/domain/entities/Client";
 import { ClientProfileModal } from "@/src/presentation/components/ClientProfileModal";
 import { EmptyState } from "@/src/presentation/components/EmptyState";
 import { useClients } from "@/src/presentation/hooks/useClients";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
@@ -23,6 +24,7 @@ import {
 export default function ClientsScreen() {
   const { clients, create, remove, update } = useClients();
   const { darkMode } = useSettingsStore();
+  const { t } = useI18n();
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -43,7 +45,7 @@ export default function ClientsScreen() {
     const cleanNotes = notes.trim();
 
     if (!cleanName) {
-      addToast("El nombre es requerido", "warning");
+      addToast(t.clients.nameRequired, "warning");
       return;
     }
 
@@ -55,11 +57,11 @@ export default function ClientsScreen() {
           phone: cleanPhone,
           notes: cleanNotes || undefined,
         });
-        addToast("Cliente actualizado", "success");
+        addToast(t.clients.updateSuccess, "success");
         setEditing(null);
       } else {
         await create(cleanName, cleanPhone, cleanNotes);
-        addToast("Cliente registrado", "success");
+        addToast(t.clients.createSuccess, "success");
       }
       setName("");
       setPhone("");
@@ -78,12 +80,12 @@ export default function ClientsScreen() {
 
   const confirmDelete = (id: string, clientName: string) => {
     Alert.alert(
-      "Eliminar Cliente",
-      `¿Deseas eliminar a ${clientName} del directorio?`,
+      t.clients.deleteConfirmTitle,
+      t.clients.deleteConfirmMsg,
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t.common.cancel, style: "cancel" },
         {
-          text: "Eliminar",
+          text: t.common.delete,
           onPress: () => handleDelete(id),
           style: "destructive",
         },
@@ -94,9 +96,9 @@ export default function ClientsScreen() {
   const handleDelete = async (id: string) => {
     try {
       await remove(id);
-      addToast("Cliente eliminado", "info");
+      addToast(t.clients.deleteSuccess, "info");
     } catch (error) {
-      addToast("Error al eliminar", "error");
+      addToast(t.clients.deleteError, "error");
     }
   };
 
@@ -124,7 +126,7 @@ export default function ClientsScreen() {
           <>
             <View style={styles.headerRow}>
               <Text style={[styles.title, { color: colors.text }]}>
-                Clientes
+                {t.clients.title}
               </Text>
               <View
                 style={[
@@ -145,11 +147,11 @@ export default function ClientsScreen() {
               ]}
             >
               <Text style={[styles.sectionLabel, { color: colors.subtext }]}>
-                {editing ? "Editando Información" : "Registrar nuevo cliente"}
+                {editing ? t.clients.editInfo : t.clients.newClient}
               </Text>
 
               <TextInput
-                placeholder="Nombre completo"
+                placeholder={t.clients.fullName}
                 placeholderTextColor={colors.subtext + "80"}
                 value={name}
                 onChangeText={setName}
@@ -159,7 +161,7 @@ export default function ClientsScreen() {
                 ]}
               />
               <TextInput
-                placeholder="Teléfono móvil"
+                placeholder={t.clients.phone}
                 placeholderTextColor={colors.subtext + "80"}
                 value={phone}
                 onChangeText={setPhone}
@@ -170,7 +172,7 @@ export default function ClientsScreen() {
                 ]}
               />
               <TextInput
-                placeholder="Observaciones (opcional)"
+                placeholder={t.clients.observations}
                 placeholderTextColor={colors.subtext + "80"}
                 value={notes}
                 onChangeText={setNotes}
@@ -193,7 +195,7 @@ export default function ClientsScreen() {
                   onPress={handleSubmit}
                 >
                   <Text style={styles.submitBtnText}>
-                    {editing ? "Guardar cambios" : "Registrar cliente"}
+                    {editing ? t.clients.saveChanges : t.clients.registerClient}
                   </Text>
                 </TouchableOpacity>
                 {editing && (
@@ -209,7 +211,7 @@ export default function ClientsScreen() {
                     <Text
                       style={[styles.cancelBtnText, { color: colors.subtext }]}
                     >
-                      Anular
+                      {t.clients.cancel}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -224,7 +226,7 @@ export default function ClientsScreen() {
             >
               <MaterialIcons name="search" size={20} color={colors.subtext} />
               <TextInput
-                placeholder="Buscar por nombre..."
+                placeholder={t.clients.searchPlaceholder}
                 placeholderTextColor={colors.subtext + "80"}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -236,8 +238,8 @@ export default function ClientsScreen() {
         ListEmptyComponent={
           <EmptyState
             iconName="contacts"
-            title="Agenda vacía"
-            description="No se encontraron clientes que coincidan con la búsqueda."
+            title={t.clients.emptyTitle}
+            description={t.clients.emptyDesc}
           />
         }
         renderItem={({ item }) => (
@@ -256,7 +258,7 @@ export default function ClientsScreen() {
               <View style={styles.infoRow}>
                 <MaterialIcons name="phone" size={14} color={colors.primary} />
                 <Text style={[styles.phoneText, { color: colors.subtext }]}>
-                  {item.phone || "Sin teléfono"}
+                  {item.phone || t.clients.noPhone}
                 </Text>
               </View>
             </View>

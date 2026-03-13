@@ -6,6 +6,7 @@ import { Client } from "@/src/domain/entities/Client";
 import { ClientSelector } from "@/src/presentation/components/ClientSelector";
 import { useClients } from "@/src/presentation/hooks/useClients";
 import { useServices } from "@/src/presentation/hooks/useServices";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -34,6 +35,7 @@ export default function EditAppointmentScreen() {
   const { services } = useServices();
   const { clients, load: loadClients } = useClients();
   const { addToast } = useToast();
+  const { t } = useI18n();
 
   const [selectedClientId, setSelectedClientId] = useState<
     string | undefined
@@ -70,7 +72,7 @@ export default function EditAppointmentScreen() {
       const repo = new AppointmentRepository();
       const appt = await repo.findById(appointmentId);
       if (!appt) {
-        addToast("Turno no encontrado", "error");
+        addToast(t.appointments.notFound, "error");
         router.back();
         return;
       }
@@ -90,7 +92,7 @@ export default function EditAppointmentScreen() {
       setSelectedServices(appt.services.map((s) => s.id));
     } catch (e) {
       console.error(e);
-      addToast("Error al cargar turno", "error");
+      addToast(t.appointments.errorLoading, "error");
     } finally {
       setIsLoading(false);
     }
@@ -111,13 +113,13 @@ export default function EditAppointmentScreen() {
 
       if (!dateStr || !timeStr) {
         throw new Error(
-          "Formato de fecha u hora requerido (Ej: 2024-12-01 / 14:30)",
+          t.appointments.completeFields,
         );
       }
 
       const combinedDate = new Date(`${dateStr}T${timeStr}:00`);
       if (isNaN(combinedDate.getTime())) {
-        throw new Error("Fecha/Hora inválida. Usa formato AAAA-MM-DD y HH:MM");
+        throw new Error(t.appointments.invalidDateTime);
       }
 
       if (!endTimeStr) {
@@ -126,7 +128,7 @@ export default function EditAppointmentScreen() {
 
       const combinedEndDate = new Date(`${dateStr}T${endTimeStr}:00`);
       if (isNaN(combinedEndDate.getTime())) {
-        throw new Error("Hora de fin inválida. Usa formato HH:MM");
+        throw new Error(t.appointments.invalidDateTime);
       }
 
       const durNum = Math.round(
@@ -134,7 +136,7 @@ export default function EditAppointmentScreen() {
       );
       if (durNum <= 0) {
         throw new Error(
-          "La hora de fin debe ser posterior a la hora de inicio",
+          t.appointments.endAfterStart,
         );
       }
 
@@ -147,7 +149,7 @@ export default function EditAppointmentScreen() {
         notes,
       );
 
-      addToast("Turno actualizado exitosamente", "success");
+      addToast(t.appointments.updateSuccess, "success");
       router.replace("/(tabs)/appointments");
     } catch (error) {
       addToast(error instanceof Error ? error.message : "Error", "error");
@@ -201,13 +203,13 @@ export default function EditAppointmentScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
-            Fecha y Horario del Turno
+            {t.appointments.date} & {t.appointments.startTime} / {t.appointments.endTime}
           </Text>
 
           <TouchableOpacity onPress={() => setShowDatePicker(true)}>
             <View pointerEvents="none">
               <TextInput
-                placeholder="Fecha *"
+                placeholder={`${t.appointments.date} *`}
                 placeholderTextColor={colors.subtext}
                 value={dateStr}
                 style={[
@@ -244,7 +246,7 @@ export default function EditAppointmentScreen() {
               <TouchableOpacity onPress={() => setShowStartTimePicker(true)}>
                 <View pointerEvents="none">
                   <TextInput
-                    placeholder="Hora Inicio *"
+                    placeholder={`${t.appointments.startTime} *`}
                     placeholderTextColor={colors.subtext}
                     value={timeStr}
                     style={[
@@ -282,7 +284,7 @@ export default function EditAppointmentScreen() {
               <TouchableOpacity onPress={() => setShowEndTimePicker(true)}>
                 <View pointerEvents="none">
                   <TextInput
-                    placeholder="Hora Fin *"
+                    placeholder={`${t.appointments.endTime} *`}
                     placeholderTextColor={colors.subtext}
                     value={endTimeStr}
                     style={[
@@ -319,7 +321,7 @@ export default function EditAppointmentScreen() {
           {Platform.OS === "ios" &&
             (showDatePicker || showStartTimePicker || showEndTimePicker) && (
               <Button
-                title="Confirmar Selección"
+                title={t.appointments.confirmSelection}
                 onPress={() => {
                   setShowDatePicker(false);
                   setShowStartTimePicker(false);
@@ -336,11 +338,11 @@ export default function EditAppointmentScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
-            Servicios Contratados *
+            {t.appointments.services} *
           </Text>
           {services.length === 0 ? (
             <Text style={styles.emptyText}>
-              No hay servicios. Ve a Ajustes a crearlos.
+              {t.appointments.noServices}
             </Text>
           ) : (
             services.map((svc) => {
@@ -394,10 +396,10 @@ export default function EditAppointmentScreen() {
           ]}
         >
           <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
-            Notas (Opcional)
+            {t.appointments.notes}
           </Text>
           <TextInput
-            placeholder="Notas interna del turno..."
+            placeholder={t.appointments.notesPlaceholder}
             placeholderTextColor={colors.subtext}
             value={notes}
             onChangeText={setNotes}
@@ -435,7 +437,7 @@ export default function EditAppointmentScreen() {
             }}
           >
             <Text style={{ color: "white", fontWeight: "800", fontSize: 16 }}>
-              {isSubmitting ? "GUARDANDO..." : "GUARDAR CAMBIOS"}
+              {isSubmitting ? t.appointments.saving : t.appointments.saveCmd}
             </Text>
           </TouchableOpacity>
         </View>

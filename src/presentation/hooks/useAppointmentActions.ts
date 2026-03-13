@@ -1,18 +1,20 @@
 import { AppointmentService } from "@/src/application/services/AppointmentService";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import { useMemo } from "react";
 import { Alert, LayoutAnimation } from "react-native";
 
 export function useAppointmentActions() {
   const service = useMemo(() => new AppointmentService(), []);
+  const { t } = useI18n();
 
   const deleteAppointmentWithPrompt = (id: string, onRefresh?: () => void) => {
     Alert.alert(
-      "Cancelar o Eliminar",
-      "¿El paciente canceló el turno o deseas eliminar el registro por error?",
+      t.appointments.deletePromptTitle,
+      t.appointments.deletePromptMsg,
       [
-        { text: "Volver", style: "cancel" },
+        { text: t.appointments.back, style: "cancel" },
         {
-          text: "Canceló el Cliente",
+          text: t.appointments.clientCancelled,
           onPress: async () => {
             try {
               await service.updateStatus(id, "cancelled");
@@ -26,7 +28,7 @@ export function useAppointmentActions() {
           },
         },
         {
-          text: "Eliminar Registro",
+          text: t.appointments.deleteRecord,
           onPress: async () => {
             try {
               await service.delete(id);

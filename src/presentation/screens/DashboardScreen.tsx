@@ -180,7 +180,7 @@ export default function DashboardScreen() {
         ListEmptyComponent={
           <EmptyState
             iconName="calendar-today"
-            title={language === "es" ? "Sin actividad" : "No activity"}
+            title={t.dashboard.noActivity}
             description={t.dashboard.empty}
           />
         }

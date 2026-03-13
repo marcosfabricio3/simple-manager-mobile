@@ -3,6 +3,7 @@ import { AppointmentService } from "@/src/application/services/AppointmentServic
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
 import { Client } from "@/src/domain/entities/Client";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -42,7 +43,8 @@ export function ClientProfileModal({
 }: ClientProfileModalProps) {
   const [metrics, setMetrics] = useState<ClientMetrics | null>(null);
   const [loading, setLoading] = useState(false);
-  const { darkMode } = useSettingsStore();
+   const { darkMode } = useSettingsStore();
+  const { t } = useI18n();
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -83,12 +85,12 @@ export function ClientProfileModal({
 
   const confirmDelete = (appointmentId: string) => {
     Alert.alert(
-      "Cancelar o Eliminar",
-      "¿El paciente canceló el turno o deseas eliminar el registro por error?",
+      t.clientProfile.deleteConfirmTitle,
+      t.clientProfile.deleteConfirmMsg,
       [
-        { text: "Volver", style: "cancel" },
+        { text: t.clientProfile.back, style: "cancel" },
         {
-          text: "Canceló el Cliente",
+          text: t.clientProfile.clientCancelled,
           onPress: async () => {
             try {
               const service = new AppointmentService();
@@ -103,7 +105,7 @@ export function ClientProfileModal({
           },
         },
         {
-          text: "Eliminar Registro",
+          text: t.clientProfile.deleteRecord,
           onPress: async () => {
             try {
               const service = new AppointmentService();
@@ -167,7 +169,7 @@ export function ClientProfileModal({
                 ]}
               >
                 <MaterialIcons name="edit" size={20} color="#007AFF" />
-                <Text style={styles.editBtnText}>Editar</Text>
+                <Text style={styles.editBtnText}>{t.clientProfile.edit}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -180,7 +182,7 @@ export function ClientProfileModal({
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
             <Text style={[styles.loadingText, { color: colors.subtext }]}>
-              Cargando historial...
+              {t.clientProfile.loadingHistory}
             </Text>
           </View>
         ) : (
@@ -202,7 +204,7 @@ export function ClientProfileModal({
                     { color: darkMode ? colors.subtext : "#666" },
                   ]}
                 >
-                  Turnos
+                  {t.clientProfile.totalAppointments}
                 </Text>
                 <Text
                   style={[
@@ -229,7 +231,7 @@ export function ClientProfileModal({
                     { color: darkMode ? colors.subtext : "#666" },
                   ]}
                 >
-                  Cancelados
+                  {t.clientProfile.cancelledAppointments}
                 </Text>
                 <Text
                   style={[
@@ -258,7 +260,7 @@ export function ClientProfileModal({
                     { color: darkMode ? colors.subtext : "#666" },
                   ]}
                 >
-                  Deuda
+                  {t.clientProfile.debt}
                 </Text>
                 <Text
                   style={[
@@ -285,7 +287,7 @@ export function ClientProfileModal({
                     { color: darkMode ? colors.subtext : "#666" },
                   ]}
                 >
-                  Gastado
+                  {t.clientProfile.spent}
                 </Text>
                 <Text
                   style={[
@@ -300,16 +302,16 @@ export function ClientProfileModal({
 
             <View style={styles.metricsRow}>
               <Text style={[styles.minorMetric, { color: colors.subtext }]}>
-                Próximo Turno:{" "}
+                {t.clientProfile.nextAppointment}:{" "}
                 {metrics.nextPending
                   ? new Date(metrics.nextPending).toLocaleDateString()
-                  : "Ninguno"}
+                  : t.clientProfile.none}
               </Text>
             </View>
 
             <View style={styles.notesContainer}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Notas del Cliente
+                {t.clientProfile.clientNotes}
               </Text>
               <View
                 style={[
@@ -329,13 +331,13 @@ export function ClientProfileModal({
                 >
                   {client.notes
                     ? client.notes
-                    : "No hay notas o detalles registrados para este cliente."}
+                    : t.clientProfile.noNotes}
                 </Text>
               </View>
             </View>
 
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Historial de Turnos
+              {t.clientProfile.appointmentHistory}
             </Text>
 
             <FlatList
@@ -344,7 +346,7 @@ export function ClientProfileModal({
               contentContainerStyle={{ paddingBottom: 40 }}
               ListEmptyComponent={
                 <Text style={[styles.emptyText, { color: colors.subtext }]}>
-                  Este cliente no tiene turnos registrados aún.
+                  {t.clientProfile.noAppointments}
                 </Text>
               }
               renderItem={({ item }) => (
@@ -388,12 +390,12 @@ export function ClientProfileModal({
                           ]}
                         >
                           {item.status === "completed"
-                            ? "Completado"
+                            ? t.clientProfile.completed
                             : item.status === "pending"
                               ? new Date(item.date) > new Date()
-                                ? "Pendiente"
-                                : "Vencido"
-                              : "Cancelado"}
+                                ? t.clientProfile.pending
+                                : t.clientProfile.expired
+                              : t.clientProfile.cancelled}
                         </Text>
                       </View>
                     </View>
@@ -476,8 +478,8 @@ export function ClientProfileModal({
                           ]}
                         >
                           {item.paymentStatus === "paid"
-                            ? "✅ Abonado (Anular)"
-                            : "💳 Marcar como Pagado"}
+                            ? t.clientProfile.paid
+                            : t.clientProfile.markAsPaid}
                         </Text>
                       </TouchableOpacity>
                     </View>

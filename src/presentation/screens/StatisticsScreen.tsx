@@ -252,7 +252,7 @@ export default function StatisticsScreen() {
             />
             <Text style={[styles.totalRevenueLabel, { color: colors.primary }]}>
               {" "}
-              Total: {formatCurrency(stats.totalRevenue)}
+              {ts.total}: {formatCurrency(stats.totalRevenue)}
             </Text>
           </View>
 

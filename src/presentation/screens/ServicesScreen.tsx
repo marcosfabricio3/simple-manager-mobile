@@ -5,6 +5,7 @@ import { Service } from "@/src/domain/entities/Service";
 import { EmptyState } from "@/src/presentation/components/EmptyState";
 import { ServiceCard } from "@/src/presentation/components/ServiceCard";
 import { useServices } from "@/src/presentation/hooks/useServices";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import { useState } from "react";
 import {
   Alert,
@@ -22,6 +23,7 @@ import {
 export default function ServicesScreen() {
   const { services, create, remove, update } = useServices();
   const { darkMode } = useSettingsStore();
+  const { t } = useI18n();
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -50,11 +52,11 @@ export default function ServicesScreen() {
     const parsedPrice = parseFloat(defaultPrice);
 
     if (!cleanName) {
-      addToast("El nombre es obligatorio", "warning");
+      addToast(t.services.nameRequired, "warning");
       return;
     }
     if (isNaN(parsedPrice)) {
-      addToast("El precio debe ser un número", "warning");
+      addToast(t.services.priceInvalid, "warning");
       return;
     }
 
@@ -66,17 +68,17 @@ export default function ServicesScreen() {
           defaultPrice: parsedPrice,
           color: cleanColor,
         });
-        addToast("Servicio actualizado", "success");
+        addToast(t.services.updateSuccess, "success");
         setEditing(null);
       } else {
         await create(cleanName, parsedPrice, cleanColor);
-        addToast("Servicio creado", "success");
+        addToast(t.services.createSuccess, "success");
       }
       setName("");
       setDefaultPrice("");
       setColor(PRESET_COLORS[0]);
     } catch (error) {
-      addToast("Error al guardar", "error");
+      addToast(t.common.error, "error");
     }
   };
 
@@ -88,10 +90,10 @@ export default function ServicesScreen() {
   };
 
   const confirmDelete = (id: string) => {
-    Alert.alert("Borrar servicio", "¿Estás seguro?", [
-      { text: "Cancelar", style: "cancel" },
+    Alert.alert(t.services.deleteConfirmTitle, t.services.deleteConfirmMsg, [
+      { text: t.common.cancel, style: "cancel" },
       {
-        text: "Eliminar",
+        text: t.common.delete,
         onPress: () => handleDelete(id),
         style: "destructive",
       },
@@ -101,9 +103,9 @@ export default function ServicesScreen() {
   const handleDelete = async (id: string) => {
     try {
       await remove(id);
-      addToast("Servicio eliminado", "info");
+      addToast(t.services.deleteSuccess, "info");
     } catch (error) {
-      addToast("Error al eliminar", "error");
+      addToast(t.services.deleteError, "error");
     }
   };
 
@@ -121,8 +123,8 @@ export default function ServicesScreen() {
         ListHeaderComponent={
           <>
             <Text style={[styles.headerTitle, { color: colors.text }]}>
-              Servicios
-            </Text>
+                {t.services.title}
+              </Text>
 
             <View
               style={[
@@ -131,11 +133,11 @@ export default function ServicesScreen() {
               ]}
             >
               <Text style={[styles.label, { color: colors.subtext }]}>
-                {editing ? "Editar Servicio" : "Nuevo Servicio"}
+                {editing ? t.services.editService : t.services.newService}
               </Text>
 
               <TextInput
-                placeholder="Nombre del tratamiento"
+                placeholder={t.services.namePlaceholder}
                 placeholderTextColor={colors.subtext + "80"}
                 value={name}
                 onChangeText={setName}
@@ -145,7 +147,7 @@ export default function ServicesScreen() {
                 ]}
               />
               <TextInput
-                placeholder="Precio base ($)"
+                placeholder={t.services.pricePlaceholder}
                 placeholderTextColor={colors.subtext + "80"}
                 value={defaultPrice}
                 onChangeText={setDefaultPrice}
@@ -162,7 +164,7 @@ export default function ServicesScreen() {
                   { color: colors.subtext, marginTop: 8, marginBottom: 12 },
                 ]}
               >
-                Color distintivo
+                {t.services.colorLabel}
               </Text>
               <View style={styles.colorGrid}>
                 {PRESET_COLORS.map((c) => (
@@ -192,7 +194,7 @@ export default function ServicesScreen() {
                   onPress={handleSubmit}
                 >
                   <Text style={styles.submitBtnText}>
-                    {editing ? "Guardar" : "Añadir Servicio"}
+                    {editing ? t.services.saveChanges : t.services.addService}
                   </Text>
                 </TouchableOpacity>
                 {editing && (
@@ -208,7 +210,7 @@ export default function ServicesScreen() {
                     <Text
                       style={[styles.cancelBtnText, { color: colors.subtext }]}
                     >
-                      Anular
+                      {t.services.cancel}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -219,8 +221,8 @@ export default function ServicesScreen() {
         ListEmptyComponent={
           <EmptyState
             iconName="list-alt"
-            title="Sin registros"
-            description="Añade los servicios que ofreces en tu clínica."
+            title={t.services.emptyTitle}
+            description={t.services.emptyDesc}
           />
         }
         renderItem={({ item }) => (
