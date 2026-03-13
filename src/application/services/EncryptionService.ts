@@ -19,10 +19,14 @@ const IV_LENGTH_BYTES = 12;
 // ---------------------------------------------------------------------------
 const getSubtle = () => {
   // 1. Try expo-crypto named/namespace export (SDK 51+)
-  if ((Crypto as any).subtle) return (Crypto as any).subtle;
+  const c = (Crypto as any).subtle;
+  if (c && typeof c.importKey === "function") return c;
+
   // 2. Try global crypto (if polyfilled or native in newer RN)
   const globalCrypto = (global as any).crypto || (global as any).Crypto;
-  if (globalCrypto?.subtle) return globalCrypto.subtle;
+  if (globalCrypto?.subtle && typeof globalCrypto.subtle.importKey === "function") {
+    return globalCrypto.subtle;
+  }
   
   return null;
 };

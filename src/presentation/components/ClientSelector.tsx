@@ -8,13 +8,13 @@ import React, { useState } from "react";
 import {
     FlatList,
     Modal,
-    SafeAreaView,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Props {
   clients: Client[];
@@ -32,6 +32,7 @@ export function ClientSelector({
   const { darkMode } = useSettingsStore();
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
+  const insets = useSafeAreaInsets();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -111,8 +112,11 @@ export function ClientSelector({
         presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}
       >
-        <SafeAreaView
-          style={[styles.modalContent, { backgroundColor: colors.background }]}
+        <View
+          style={[
+            styles.modalContent, 
+            { backgroundColor: colors.background, paddingTop: insets.top }
+          ]}
         >
           <View
             style={[styles.modalHeader, { borderBottomColor: colors.border }]}
@@ -267,7 +271,7 @@ export function ClientSelector({
               </View>
             </>
           )}
-        </SafeAreaView>
+        </View>
       </Modal>
     </View>
   );

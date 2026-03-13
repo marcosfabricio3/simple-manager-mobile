@@ -28,52 +28,21 @@ export default function CreateAppointmentScreen() {
   const { clients, load: loadClients } = useClients();
   const { addToast } = useToast();
   const params = useLocalSearchParams();
-  const { darkMode } = useSettingsStore();
 
-  const theme = darkMode ? "dark" : "light";
-  const colors = Colors[theme];
-
-  // Form State
   const [selectedClientId, setSelectedClientId] = useState<
     string | undefined
-  >();
-  const [dateStr, setDateStr] = useState("");
+  >(params.clientId as string);
+  const [dateStr, setDateStr] = useState(
+    params.date ? (params.date as string) : new Date().toISOString().split("T")[0]
+  );
   const [timeStr, setTimeStr] = useState("");
   const [endTimeStr, setEndTimeStr] = useState("");
   const [notes, setNotes] = useState("");
-  const [dateObj, setDateObj] = useState(new Date());
 
+  const [dateObj, setDateObj] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Function to reset form to initial state
-  const resetForm = useCallback(() => {
-    setSelectedClientId(undefined);
-    setNotes("");
-    setSelectedServices([]);
-    setTimeStr("");
-    setEndTimeStr("");
-
-    if (params.date && typeof params.date === "string") {
-      setDateStr(params.date);
-      setDateObj(new Date(`${params.date}T12:00:00`));
-    } else {
-      const today = new Date();
-      setDateStr(today.toISOString().split("T")[0]);
-      setDateObj(today);
-    }
-  }, [params.date]);
-
-  useFocusEffect(
-    useCallback(() => {
-      resetForm();
-      loadClients();
-    }, [resetForm, loadClients]),
-  );
 
   const formatTime24h = (d: Date) => {
     return (
@@ -83,48 +52,47 @@ export default function CreateAppointmentScreen() {
     );
   };
 
-  const toggleService = (id: string) => {
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadClients();
+    }, [])
+  );
+
+  const toggleService = (serviceId: string) => {
     setSelectedServices((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+      prev.includes(serviceId)
+        ? prev.filter((s) => s !== serviceId)
+        : [...prev, serviceId]
     );
   };
 
   const handleSave = async () => {
+    if (!selectedClientId) {
+      addToast("Selecciona un cliente", "error");
+      return;
+    }
+    if (selectedServices.length === 0) {
+      addToast("Selecciona al menos un servicio", "error");
+      return;
+    }
+    if (!dateStr || !timeStr || !endTimeStr) {
+      addToast("Completa fecha y horarios", "error");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      if (!dateStr || !timeStr) {
-        throw new Error(
-          "Formato de fecha u hora requerido (Ej: 2024-12-01 / 14:30)",
-        );
-      }
-
       const combinedDate = new Date(`${dateStr}T${timeStr}:00`);
-      if (isNaN(combinedDate.getTime())) {
-        throw new Error("Fecha/Hora inválida. Usa formato AAAA-MM-DD y HH:MM");
-      }
-
-      if (!endTimeStr) {
-        throw new Error("Hora de fin es requerida (HH:MM)");
-      }
-
       const combinedEndDate = new Date(`${dateStr}T${endTimeStr}:00`);
-      if (isNaN(combinedEndDate.getTime())) {
-        throw new Error("Hora de fin inválida. Usa formato HH:MM");
-      }
 
       const durNum = Math.round(
-        (combinedEndDate.getTime() - combinedDate.getTime()) / 60000,
+        (combinedEndDate.getTime() - combinedDate.getTime()) / 60000
       );
       if (durNum <= 0) {
-        throw new Error(
-          "La hora de fin debe ser posterior a la hora de inicio",
-        );
-      }
-
-      if (!selectedClientId) {
-        throw new Error(
-          "Por favor, selecciona o crea un cliente para el turno.",
-        );
+        throw new Error("La hora de fin debe ser posterior a la de inicio");
       }
 
       await createWithExisting(
@@ -132,17 +100,21 @@ export default function CreateAppointmentScreen() {
         combinedDate.toISOString(),
         durNum,
         selectedServices,
-        notes,
+        notes
       );
 
       addToast("Turno creado exitosamente", "success");
-      router.back();
+      router.replace("/(tabs)/appointments");
     } catch (error) {
       addToast(error instanceof Error ? error.message : "Error", "error");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const theme = useSettingsStore().darkMode ? "dark" : "light";
+  const colors = Colors[theme];
+  const darkMode = theme === "dark";
 
   return (
     <KeyboardAvoidingView
@@ -160,7 +132,7 @@ export default function CreateAppointmentScreen() {
           <ClientSelector
             clients={clients}
             selectedClientId={selectedClientId}
-            onSelectClient={(c: Client) => setSelectedClientId(c.id)}
+            onSelectClient={(c) => setSelectedClientId(c.id)}
             onClientCreated={loadClients}
           />
         </View>
@@ -406,7 +378,7 @@ export default function CreateAppointmentScreen() {
             }}
           >
             <Text style={{ color: "white", fontWeight: "800", fontSize: 16 }}>
-              {isSubmitting ? "GUARDANDO..." : "RESERVAR TURNO"}
+              {isSubmitting ? "GUARDANDO..." : "CREAR TURNO"}
             </Text>
           </TouchableOpacity>
         </View>

@@ -26,16 +26,27 @@ export default function ServicesScreen() {
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
 
+  const PRESET_COLORS = [
+    colors.primary,
+    "#F43F5E", // Rose
+    "#8B5CF6", // Violet
+    "#EC4899", // Pink
+    "#10B981", // Emerald
+    "#F59E0B", // Amber
+    "#3B82F6", // Blue
+    "#64748B", // Slate
+  ];
+
   const [name, setName] = useState("");
   const [defaultPrice, setDefaultPrice] = useState("");
-  const [color, setColor] = useState("");
+  const [color, setColor] = useState(PRESET_COLORS[0]);
   const [editing, setEditing] = useState<Service | null>(null);
 
   const { addToast } = useToast();
 
   const handleSubmit = async () => {
     const cleanName = name.trim();
-    const cleanColor = color.trim() || colors.primary;
+    const cleanColor = color || colors.primary;
     const parsedPrice = parseFloat(defaultPrice);
 
     if (!cleanName) {
@@ -63,7 +74,7 @@ export default function ServicesScreen() {
       }
       setName("");
       setDefaultPrice("");
-      setColor("");
+      setColor(PRESET_COLORS[0]);
     } catch (error) {
       addToast("Error al guardar", "error");
     }
@@ -144,17 +155,32 @@ export default function ServicesScreen() {
                   { borderColor: colors.border, color: colors.text },
                 ]}
               />
-              <TextInput
-                placeholder="Color Hex (ej: #FF0000)"
-                placeholderTextColor={colors.subtext + "80"}
-                value={color}
-                onChangeText={setColor}
-                autoCapitalize="none"
+
+              <Text
                 style={[
-                  styles.input,
-                  { borderColor: colors.border, color: colors.text },
+                  styles.label,
+                  { color: colors.subtext, marginTop: 8, marginBottom: 12 },
                 ]}
-              />
+              >
+                Color distintivo
+              </Text>
+              <View style={styles.colorGrid}>
+                {PRESET_COLORS.map((c) => (
+                  <TouchableOpacity
+                    key={c}
+                    onPress={() => setColor(c)}
+                    style={[
+                      styles.colorOption,
+                      { backgroundColor: c },
+                      color === c && {
+                        borderColor: colors.text,
+                        borderWidth: 3,
+                        transform: [{ scale: 1.1 }],
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
 
               <View style={styles.actionRow}>
                 <TouchableOpacity
@@ -175,7 +201,7 @@ export default function ServicesScreen() {
                       setEditing(null);
                       setName("");
                       setDefaultPrice("");
-                      setColor("");
+                      setColor(PRESET_COLORS[0]);
                     }}
                     style={[styles.cancelBtn, { borderColor: colors.border }]}
                   >
@@ -247,6 +273,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     fontSize: 15,
     marginBottom: 12,
+  },
+  colorGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 24,
+  },
+  colorOption: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: "transparent",
   },
   actionRow: {
     flexDirection: "row",

@@ -148,7 +148,7 @@ export default function EditAppointmentScreen() {
       );
 
       addToast("Turno actualizado exitosamente", "success");
-      router.back();
+      router.replace("/(tabs)/appointments");
     } catch (error) {
       addToast(error instanceof Error ? error.message : "Error", "error");
     } finally {
