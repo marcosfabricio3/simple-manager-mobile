@@ -200,6 +200,7 @@ export default function DashboardScreen() {
           <AppointmentCard
             appointment={item}
             onDelete={refresh}
+            onStatusUpdate={refresh}
             onEdit={(id) => router.push(`/appointments/edit?id=${id}`)}
           />
         )}

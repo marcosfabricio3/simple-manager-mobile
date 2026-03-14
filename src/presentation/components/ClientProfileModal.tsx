@@ -7,12 +7,16 @@ import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
+import { useServices } from "@/src/presentation/hooks/useServices";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   LayoutAnimation,
   Modal,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -45,6 +49,13 @@ export function ClientProfileModal({
   const [loading, setLoading] = useState(false);
    const { darkMode } = useSettingsStore();
   const { t } = useI18n();
+  const { services: allServices } = useServices();
+
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid" | "cancelled">("all");
+  const [serviceFilter, setServiceFilter] = useState<string | "all">("all");
+  const [dateFilter, setDateFilter] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -134,6 +145,55 @@ export function ClientProfileModal({
         params: { id: appointment.id },
       });
     }, 150);
+  };
+
+  const filteredHistory = React.useMemo(() => {
+    if (!metrics?.history) return [];
+
+    let result = [...metrics.history];
+
+    // Filter by Payment/Status
+    if (statusFilter === "paid" || statusFilter === "unpaid") {
+      result = result.filter((app) => app.paymentStatus === statusFilter);
+    } else if (statusFilter === "cancelled") {
+      result = result.filter((app) => app.status === "cancelled");
+    }
+
+    // Filter by Service
+    if (serviceFilter !== "all") {
+      result = result.filter((app) =>
+        app.services.some((s) => s.id === serviceFilter),
+      );
+    }
+
+    // Filter by Date
+    if (dateFilter) {
+      const filterStr = dateFilter.toISOString().split("T")[0];
+      result = result.filter((app) => app.date.startsWith(filterStr));
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+
+    return result;
+  }, [metrics?.history, sortOrder, statusFilter, serviceFilter, dateFilter]);
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDateFilter(selectedDate);
+    }
+  };
+
+  const clearFilters = () => {
+    setSortOrder("desc");
+    setStatusFilter("all");
+    setServiceFilter("all");
+    setDateFilter(null);
   };
 
   if (!client) return null;
@@ -336,12 +396,98 @@ export function ClientProfileModal({
               </View>
             </View>
 
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              {t.clientProfile.appointmentHistory}
-            </Text>
+            <View style={styles.historyHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {t.clientProfile.appointmentHistory}
+              </Text>
+              <TouchableOpacity onPress={clearFilters}>
+                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                  {t.clientProfile.clearFilters}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterSection}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                {/* Sort Order */}
+                <TouchableOpacity
+                  style={[styles.filterChip, { backgroundColor: colors.border + "30" }]}
+                  onPress={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                >
+                  <MaterialIcons 
+                    name={sortOrder === "desc" ? "arrow-downward" : "arrow-upward"} 
+                    size={16} 
+                    color={colors.primary} 
+                  />
+                  <Text style={[styles.filterChipText, { color: colors.text }]}>
+                    {sortOrder === "desc" ? t.clientProfile.mostRecent : t.clientProfile.leastRecent}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Date Filter */}
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip, 
+                    dateFilter ? { backgroundColor: colors.primary + "20" } : { backgroundColor: colors.border + "30" }
+                  ]}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <MaterialIcons name="event" size={16} color={dateFilter ? colors.primary : colors.subtext} />
+                  <Text style={[styles.filterChipText, { color: dateFilter ? colors.primary : colors.text }]}>
+                    {dateFilter ? dateFilter.toLocaleDateString() : t.clientProfile.dateFilter}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Status/Payment Filters */}
+                {(["all", "paid", "unpaid", "cancelled"] as const).map((status) => (
+                  <TouchableOpacity
+                    key={status}
+                    style={[
+                      styles.filterChip,
+                      statusFilter === status ? { backgroundColor: colors.primary + "20" } : { backgroundColor: colors.border + "30" }
+                    ]}
+                    onPress={() => setStatusFilter(status)}
+                  >
+                    <Text style={[styles.filterChipText, { color: statusFilter === status ? colors.primary : colors.text }]}>
+                      {status === "all" ? t.appointments.total : 
+                       status === "paid" ? t.appointments.paid : 
+                       status === "unpaid" ? t.appointments.unpaid :
+                       t.appointments.cancelled}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+
+                {/* Service Filter */}
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                {allServices.map((svc) => (
+                  <TouchableOpacity
+                    key={svc.id}
+                    style={[
+                      styles.filterChip,
+                      serviceFilter === svc.id ? { backgroundColor: colors.primary + "20" } : { backgroundColor: colors.border + "30" }
+                    ]}
+                    onPress={() => setServiceFilter(serviceFilter === svc.id ? "all" : svc.id)}
+                  >
+                    <View style={[styles.colorDot, { backgroundColor: svc.color }]} />
+                    <Text style={[styles.filterChipText, { color: serviceFilter === svc.id ? colors.primary : colors.text }]}>
+                      {svc.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={dateFilter || new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={onDateChange}
+              />
+            )}
 
             <FlatList
-              data={metrics.history}
+              data={filteredHistory}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ paddingBottom: 40 }}
               ListEmptyComponent={
@@ -600,6 +746,41 @@ const styles = StyleSheet.create({
   badgeWarning: { backgroundColor: "#FFF3E0" },
   badgeError: { backgroundColor: "#FFEBEE" },
   badgeText: { fontSize: 12, fontWeight: "600" },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterRow: {
+    gap: 10,
+    paddingVertical: 5,
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  divider: {
+    width: 1,
+    height: "100%",
+    marginHorizontal: 5,
+  },
+  colorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
   servicesList: { fontSize: 14, marginBottom: 12 },
   appFooter: {
     flexDirection: "column",

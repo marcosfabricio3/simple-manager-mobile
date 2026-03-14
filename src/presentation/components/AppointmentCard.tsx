@@ -13,16 +13,17 @@ interface Props {
   appointment: AppointmentWithDetails;
   onDelete: (id: string) => void;
   onEdit?: (id: string) => void;
+  onStatusUpdate?: () => void;
   concise?: boolean;
 }
-
 export function AppointmentCard({
   appointment,
   onDelete,
   onEdit,
+  onStatusUpdate,
   concise,
 }: Props) {
-  const { deleteAppointmentWithPrompt } = useAppointmentActions();
+  const { deleteAppointmentWithPrompt, togglePaymentStatus } = useAppointmentActions();
   const { darkMode, language } = useSettingsStore();
   const { t } = useI18n();
 
@@ -103,6 +104,16 @@ export function AppointmentCard({
               <MaterialIcons name="edit" size={20} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity
+              onPress={() => togglePaymentStatus(appointment, onStatusUpdate)}
+              style={styles.iconBtn}
+            >
+              <MaterialIcons 
+                name={appointment.paymentStatus === "paid" ? "check-circle" : "payments"} 
+                size={20} 
+                color={appointment.paymentStatus === "paid" ? colors.success : colors.subtext} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() =>
                 deleteAppointmentWithPrompt(appointment.id, () =>
                   onDelete(appointment.id),
@@ -166,18 +177,46 @@ export function AppointmentCard({
       </View>
 
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <Text style={[styles.totalLabel, { color: colors.subtext }]}>
-          {t.appointments.total}:{" "}
-          <Text style={[styles.totalValue, { color: colors.text }]}>
-            ${appointment.totalPrice.toFixed(2)}
+        <View style={styles.footerPrice}>
+          <Text style={[styles.totalLabel, { color: colors.subtext }]}>
+            {t.appointments.total}:{" "}
+            <Text style={[styles.totalValue, { color: colors.text }]}>
+              ${appointment.totalPrice.toFixed(2)}
+            </Text>
           </Text>
-        </Text>
+          <View style={[
+            styles.paymentTag, 
+            { backgroundColor: appointment.paymentStatus === "paid" ? colors.success + "15" : colors.border + "40" }
+          ]}>
+            <MaterialIcons 
+              name={appointment.paymentStatus === "paid" ? "check-circle" : "error-outline"} 
+              size={12} 
+              color={appointment.paymentStatus === "paid" ? colors.success : colors.subtext} 
+            />
+            <Text style={[
+              styles.paymentTagText, 
+              { color: appointment.paymentStatus === "paid" ? colors.success : colors.subtext }
+            ]}>
+              {appointment.paymentStatus === "paid" ? t.appointments.paid : t.appointments.unpaid}
+            </Text>
+          </View>
+        </View>
         <View style={styles.footerActions}>
           <TouchableOpacity
             onPress={() => onEdit?.(appointment.id)}
             style={styles.actionBtn}
           >
             <MaterialIcons name="edit" size={20} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => togglePaymentStatus(appointment, onStatusUpdate)}
+            style={styles.actionBtn}
+          >
+            <MaterialIcons 
+              name={appointment.paymentStatus === "paid" ? "money-off" : "payments"} 
+              size={22} 
+              color={appointment.paymentStatus === "paid" ? colors.danger : colors.success} 
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() =>
@@ -320,6 +359,25 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontWeight: "800",
+  },
+  footerPrice: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  paymentTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  paymentTagText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
   },
   footerActions: {
     flexDirection: "row",

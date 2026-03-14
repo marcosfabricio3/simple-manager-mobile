@@ -1,3 +1,4 @@
+import { AppointmentWithDetails } from "../../domain/entities/Appointment";
 import { AppointmentService } from "@/src/application/services/AppointmentService";
 import { useI18n } from "@/src/presentation/translations/useI18n";
 import { useMemo } from "react";
@@ -46,7 +47,18 @@ export function useAppointmentActions() {
     );
   };
 
+  const togglePaymentStatus = async (appointment: AppointmentWithDetails, onRefresh?: () => void) => {
+    const newStatus = appointment.paymentStatus === "paid" ? "unpaid" : "paid";
+    try {
+      await service.updatePaymentStatus(appointment.id, newStatus);
+      if (onRefresh) onRefresh();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return {
     deleteAppointmentWithPrompt,
+    togglePaymentStatus,
   };
-}
+};

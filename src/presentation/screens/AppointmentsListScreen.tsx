@@ -156,6 +156,7 @@ export default function AppointmentsListScreen() {
                 concise={true}
                 onEdit={(id) => router.push(`/appointments/edit?id=${id}`)}
                 onDelete={() => loadMonth(currentYear, currentMonth, true)}
+                onStatusUpdate={() => loadMonth(currentYear, currentMonth, true)}
               />
             </View>
           )}
