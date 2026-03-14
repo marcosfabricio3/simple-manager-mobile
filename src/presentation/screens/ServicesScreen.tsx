@@ -19,11 +19,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 
 export default function ServicesScreen() {
   const { services, create, remove, update } = useServices();
   const { darkMode } = useSettingsStore();
   const { t } = useI18n();
+  const paddingTop = useSafeTopPadding();
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -119,7 +121,12 @@ export default function ServicesScreen() {
       <FlatList
         data={services}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            paddingTop,
+          },
+        ]}
         ListHeaderComponent={
           <>
             <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -243,7 +250,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 40,
   },
   headerTitle: {

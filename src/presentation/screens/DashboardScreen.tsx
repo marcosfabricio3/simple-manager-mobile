@@ -9,6 +9,7 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo } from "react";
 import {
   FlatList,
+  Platform,
   RefreshControl,
   StatusBar,
   StyleSheet,
@@ -16,12 +17,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 export default function DashboardScreen() {
   const { todayAppointments, loading, refresh } = useDashboard();
   const { darkMode, language } = useSettingsStore();
   const { t } = useI18n();
+  const paddingTop = useSafeTopPadding();
 
   useFocusEffect(
     useCallback(() => {
@@ -114,14 +117,23 @@ export default function DashboardScreen() {
           />
         }
         ListHeaderComponent={
-          <View style={styles.header}>
-            <View style={styles.welcomeRow}>
-              <Text style={[styles.greeting, { color: colors.subtext }]}>
-                {t.dashboard.greeting}
-              </Text>
-              <Text style={[styles.title, { color: colors.text }]}>
-                {t.dashboard.title}
-              </Text>
+          <View
+            style={[
+              styles.header,
+              {
+                paddingTop,
+              },
+            ]}
+          >
+            <View style={styles.headerTop}>
+              <View style={styles.welcomeRow}>
+                <Text style={[styles.greeting, { color: colors.subtext }]}>
+                  {t.dashboard.greeting}
+                </Text>
+                <Text style={[styles.title, { color: colors.text }]}>
+                  {t.dashboard.title}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.metricsGrid}>
@@ -194,14 +206,17 @@ export default function DashboardScreen() {
       />
 
       <TouchableOpacity
-        activeOpacity={0.8}
+        activeOpacity={0.7}
         style={[
-          styles.fab,
-          { backgroundColor: colors.primary, shadowColor: colors.primary },
+          styles.headerAddBtnFixed, 
+          { 
+            backgroundColor: colors.primary,
+            top: paddingTop + 12,
+          }
         ]}
         onPress={() => router.push("/appointments/create")}
       >
-        <MaterialIcons name="add" size={32} color="white" />
+        <MaterialIcons name="add" size={26} color="white" />
       </TouchableOpacity>
     </View>
   );
@@ -216,11 +231,30 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   header: {
-    paddingTop: 60,
     marginBottom: 20,
   },
-  welcomeRow: {
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
     marginBottom: 24,
+  },
+  welcomeRow: {
+    flex: 1,
+  },
+  headerAddBtnFixed: {
+    position: "absolute",
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 15,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
   },
   greeting: {
     fontSize: 12,
@@ -280,19 +314,5 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "800",
-  },
-  fab: {
-    position: "absolute",
-    bottom: 100,
-    right: 30,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 6,
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
   },
 });

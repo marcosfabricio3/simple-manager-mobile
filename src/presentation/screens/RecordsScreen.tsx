@@ -21,10 +21,15 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 
 export default function RecordsScreen() {
   const { records, create, remove, update, existsByTitle } = useRecords();
   const { darkMode } = useSettingsStore();
+  const { t } = useI18n();
+  const tr = t.records;
+  const paddingTop = useSafeTopPadding();
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -33,7 +38,6 @@ export default function RecordsScreen() {
   const [type, setType] = useState("");
   const [editing, setEditing] = useState<Record | null>(null);
 
-  // New States for Filtering & Search
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
@@ -52,7 +56,7 @@ export default function RecordsScreen() {
     if (!editing) {
       const exists = await existsByTitle(cleanTitle);
       if (exists) {
-        addToast("Ya existe un registro con ese titulo", "warning");
+        addToast(tr.existsError, "warning");
         return;
       }
     }
@@ -65,18 +69,18 @@ export default function RecordsScreen() {
           type: cleanType,
         });
 
-        addToast("Registro actualizado correctamente", "success");
+        addToast(tr.updateSuccess, "success");
         setEditing(null);
       } else {
         await create(cleanTitle, cleanType);
-        addToast("Registro creado correctamente", "success");
+        addToast(tr.createSuccess, "success");
       }
 
       setTitle("");
       setType("");
     } catch (error) {
       addToast(
-        error instanceof Error ? error.message : "Error inesperado",
+        error instanceof Error ? error.message : "Error",
         "error",
       );
     }
@@ -90,12 +94,12 @@ export default function RecordsScreen() {
 
   const confirmDelete = (id: string) => {
     Alert.alert(
-      "Eliminar registro",
-      "¿Estás seguro de que quieres eliminar este registro? Esta acción no se puede deshacer.",
+      tr.deleteTitle,
+      tr.deleteMsg,
       [
-        { text: "Cancelar", style: "cancel" },
+        { text: t.common.cancel, style: "cancel" },
         {
-          text: "Eliminar",
+          text: t.common.delete,
           onPress: () => handleDelete(id),
           style: "destructive",
         },
@@ -106,16 +110,15 @@ export default function RecordsScreen() {
   const handleDelete = async (id: string) => {
     try {
       await remove(id);
-      addToast("Registro eliminado correctamente", "info");
+      addToast(tr.deleteSuccess, "info");
     } catch (error) {
       addToast(
-        error instanceof Error ? error.message : "Error inesperado",
+        error instanceof Error ? error.message : "Error",
         "error",
       );
     }
   };
 
-  // Derived data
   const uniqueTypes = useMemo(() => {
     const types = new Set(records.map((r) => r.type));
     return Array.from(types).sort();
@@ -132,7 +135,6 @@ export default function RecordsScreen() {
       result = result.filter((r) => r.type === selectedType);
     }
 
-    // Sort by creation date descending
     result.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -144,19 +146,25 @@ export default function RecordsScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.background,
+          paddingTop,
+        },
+      ]}
     >
       <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
       <Text style={[styles.headerTitle, { color: colors.text }]}>
-        Simple Manager
+        {tr.title}
       </Text>
 
       <View style={[styles.formContainer, { backgroundColor: colors.card }]}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          {editing ? "Editar Registro" : "Nuevo Registro"}
+          {editing ? tr.editRecord : tr.newRecord}
         </Text>
         <TextInput
-          placeholder="Title"
+          placeholder={tr.titlePlaceholder}
           placeholderTextColor={darkMode ? "#666" : "#A1A1AA"}
           value={title}
           onChangeText={setTitle}
@@ -170,7 +178,7 @@ export default function RecordsScreen() {
           ]}
         />
         <TextInput
-          placeholder="Type"
+          placeholder={tr.typePlaceholder}
           placeholderTextColor={darkMode ? "#666" : "#A1A1AA"}
           value={type}
           onChangeText={setType}
@@ -184,13 +192,13 @@ export default function RecordsScreen() {
           ]}
         />
         <Button
-          title={editing ? "Actualizar" : "Guardar"}
+          title={editing ? tr.update : tr.save}
           onPress={handleSubmit}
         />
         {editing && (
           <View style={{ marginTop: 10 }}>
             <Button
-              title="Cancelar Edición"
+              title={tr.cancel}
               color="red"
               onPress={() => {
                 setEditing(null);
@@ -203,10 +211,10 @@ export default function RecordsScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Filtrar y Buscar
+        {tr.filterSearch}
       </Text>
       <TextInput
-        placeholder="Buscar por título..."
+        placeholder={tr.searchPlaceholder}
         placeholderTextColor={darkMode ? "#666" : "#8E8E93"}
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -249,7 +257,7 @@ export default function RecordsScreen() {
                   { color: !selectedType ? "#fff" : colors.text },
                 ]}
               >
-                Todos
+                {tr.filterAll}
               </Text>
             </TouchableOpacity>
             {uniqueTypes.map((t) => (
@@ -293,8 +301,8 @@ export default function RecordsScreen() {
           <View style={{ paddingTop: 40 }}>
             <EmptyState
               iconName="folder-open"
-              title="Registros Vacíos"
-              description="No se encontraron registros de caja con los filtros actuales."
+              title={tr.emptyTitle}
+              description={tr.emptyDesc}
             />
           </View>
         }
@@ -314,7 +322,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    paddingTop: 40,
   },
   headerTitle: {
     fontSize: 24,

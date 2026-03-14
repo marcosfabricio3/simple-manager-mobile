@@ -10,18 +10,21 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 import { Calendar, CalendarProvider, DateData } from "react-native-calendars";
 
 export default function AppointmentsListScreen() {
   const { appointments, loadMonth, loading } = useMonthlyAppointments();
   const { darkMode, language } = useSettingsStore();
   const { t } = useI18n();
+  const paddingTop = useSafeTopPadding();
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -102,7 +105,15 @@ export default function AppointmentsListScreen() {
       onDateChanged={onDateChanged}
       onMonthChange={onMonthChange}
     >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: colors.background,
+            paddingTop,
+          },
+        ]}
+      >
         <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
 
         <View style={styles.calendarContainer}>
@@ -117,20 +128,22 @@ export default function AppointmentsListScreen() {
           />
         </View>
 
-        <View style={styles.listHeader}>
-          <Text style={[styles.listTitle, { color: colors.text }]}>
-            {t.calendar.title}
-          </Text>
-          <Text style={[styles.listSub, { color: colors.subtext }]}>
-            {new Date(selectedDate + "T12:00:00").toLocaleDateString(
-              language === "es" ? "es-ES" : "en-US",
-              {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              },
-            )}
-          </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.listHeader}>
+            <Text style={[styles.listTitle, { color: colors.text }]}>
+              {t.calendar.title}
+            </Text>
+            <Text style={[styles.listSub, { color: colors.subtext }]}>
+              {new Date(selectedDate + "T12:00:00").toLocaleDateString(
+                language === "es" ? "es-ES" : "en-US",
+                {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                },
+              )}
+            </Text>
+          </View>
         </View>
 
         <FlatList
@@ -163,13 +176,19 @@ export default function AppointmentsListScreen() {
         />
 
         <TouchableOpacity
-          activeOpacity={0.8}
-          style={[styles.fab, { backgroundColor: colors.primary }]}
+          activeOpacity={0.7}
+          style={[
+            styles.headerAddBtnFixed, 
+            { 
+              backgroundColor: colors.primary,
+              top: paddingTop + 12,
+            }
+          ]}
           onPress={() =>
             router.push(`/appointments/create?date=${selectedDate}`)
           }
         >
-          <MaterialIcons name="add" size={28} color="white" />
+          <MaterialIcons name="add" size={26} color="white" />
         </TouchableOpacity>
       </View>
     </CalendarProvider>
@@ -184,9 +203,30 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     backgroundColor: "transparent",
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingRight: 20,
+  },
   listHeader: {
     paddingHorizontal: 20,
     paddingVertical: 16,
+    flex: 1,
+  },
+  headerAddBtnFixed: {
+    position: "absolute",
+    right: 20,
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
   listTitle: {
     fontSize: 20,
@@ -209,20 +249,5 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 40,
     alignItems: "center",
-  },
-  fab: {
-    position: "absolute",
-    bottom: 94,
-    right: 24,
-    width: 56, // Guidelines: 56px
-    height: 56,
-    borderRadius: 28,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
   },
 });

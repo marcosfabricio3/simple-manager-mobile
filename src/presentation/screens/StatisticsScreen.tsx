@@ -6,6 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import {
     ActivityIndicator,
+    Platform,
     ScrollView,
     StatusBar,
     StyleSheet,
@@ -13,6 +14,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 
 // ---------------------------------------------------------------------------
 // Formatters
@@ -161,6 +163,7 @@ export default function StatisticsScreen() {
   const colors = Colors[darkMode ? "dark" : "light"];
   const { t } = useI18n();
   const ts = t.statistics;
+  const paddingTop = useSafeTopPadding();
 
   const {
     stats,
@@ -176,7 +179,12 @@ export default function StatisticsScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[
+        styles.scrollContent,
+        {
+          paddingTop,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
@@ -348,7 +356,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
     padding: 16,
-    paddingTop: 60,
     paddingBottom: 120,
   },
   headerTitle: {

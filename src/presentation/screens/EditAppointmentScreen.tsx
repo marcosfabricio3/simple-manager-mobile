@@ -23,6 +23,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 import { AppointmentRepository } from "../../infrastructure/repositories/AppointmentRepository";
 
 export default function EditAppointmentScreen() {
@@ -36,6 +37,7 @@ export default function EditAppointmentScreen() {
   const { clients, load: loadClients } = useClients();
   const { addToast } = useToast();
   const { t } = useI18n();
+  const paddingTop = useSafeTopPadding();
 
   const [selectedClientId, setSelectedClientId] = useState<
     string | undefined
@@ -181,7 +183,14 @@ export default function EditAppointmentScreen() {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop,
+          },
+        ]}
+      >
         <View
           style={[
             styles.card,
@@ -452,7 +461,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 20,
-    paddingTop: 60,
     paddingBottom: 120,
   },
   card: {

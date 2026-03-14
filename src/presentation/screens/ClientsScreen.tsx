@@ -20,11 +20,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 
 export default function ClientsScreen() {
   const { clients, create, remove, update } = useClients();
   const { darkMode } = useSettingsStore();
   const { t } = useI18n();
+  const paddingTop = useSafeTopPadding();
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -121,7 +123,12 @@ export default function ClientsScreen() {
       <FlatList
         data={filteredClients}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            paddingTop,
+          },
+        ]}
         ListHeaderComponent={
           <>
             <View style={styles.headerRow}>
@@ -303,7 +310,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 120,
   },
   headerRow: {

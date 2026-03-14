@@ -4,7 +4,7 @@ import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { useI18n } from "@/src/presentation/translations/useI18n";
 import * as LocalAuthentication from "expo-local-authentication";
 import { router, useRootNavigationState } from "expo-router";
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import {
   Alert,
   AppState,
@@ -20,32 +20,46 @@ interface AuthGuardProps {
 }
 
 export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const { biometricLockEnabled, hasSeenOnboarding } = useSettingsStore();
+  const { biometricLockEnabled, hasSeenOnboarding, darkMode } = useSettingsStore();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const { t } = useI18n();
-  const colors = Colors.light;
+  
+  const theme = darkMode ? "dark" : "light";
+  const colors = Colors[theme];
+
+  const isAuthenticating = useRef(false);
+  const appState = useRef(AppState.currentState);
 
   // Navigation state needed before we can redirect
   const navState = useRootNavigationState();
   const navReady = !!navState?.key;
 
-  const authenticate = async () => {
-    try {
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+  const authenticate = useCallback(async (isAuto = false) => {
+    if (isAuthenticating.current) {
+        console.log("Auth already in progress, skipping...");
+        return;
+    }
 
-      if (!hasHardware || !isEnrolled) {
+    try {
+      isAuthenticating.current = true;
+      
+      // Determine security level: 0 (None), 1 (PIN/Pattern/Pass), 2 (Biometric)
+      const enrolledLevel = await LocalAuthentication.getEnrolledLevelAsync();
+
+      if (enrolledLevel === LocalAuthentication.SecurityLevel.NONE) {
         setIsAuthenticated(true);
         setIsChecking(false);
         return;
       }
 
+      // Small delay for automatic trigger to ensure OS is ready
+      if (isAuto) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage:
-          t.common.attention === "Atención"
-            ? "Autenticación requerida"
-            : "Authentication required",
+        promptMessage: t.auth.prompt,
         fallbackLabel: "PIN",
         disableDeviceFallback: false,
       });
@@ -57,11 +71,14 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       }
     } catch (error) {
       console.error("Auth error", error);
-      Alert.alert(t.common.error, "No se pudo autenticar");
+      if (!isAuto) {
+        Alert.alert(t.common.error, t.common.error === "Error" ? "No se pudo autenticar" : "Authentication failed");
+      }
     } finally {
+      isAuthenticating.current = false;
       setIsChecking(false);
     }
-  };
+  }, [t.auth.prompt, t.common.error]);
 
   // Biometric check on mount
   useEffect(() => {
@@ -70,27 +87,34 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       setIsChecking(false);
       return;
     }
+
+    // Initial check
     authenticate();
 
     const subscription = AppState.addEventListener(
       "change",
       (nextAppState: AppStateStatus) => {
-        if (nextAppState === "active" && biometricLockEnabled) {
+        // Only lock if transitioning from background/inactive to active
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextAppState === "active" &&
+          biometricLockEnabled
+        ) {
+          console.log("App resumed, re-authenticating...");
           setIsAuthenticated(false);
-          authenticate();
+          authenticate(true);
         }
+        appState.current = nextAppState;
       },
     );
 
     return () => subscription.remove();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [biometricLockEnabled]);
+  }, [biometricLockEnabled, authenticate]);
 
   // Onboarding redirect — runs once navigation is ready
   useEffect(() => {
-    if (!navReady) return;
-    if (isChecking) return;
-    if (!isAuthenticated) return;
+    if (!navReady || isChecking || !isAuthenticated) return;
+    
     if (!hasSeenOnboarding) {
       router.replace("/onboarding");
     }
@@ -101,8 +125,8 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     return <>{children}</>;
   }
 
-  // --- Checking biometrics ---
-  if (isChecking) {
+  // --- Checking hardware on start ---
+  if (isChecking && !isAuthenticated) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={[styles.text, { color: colors.subtext }]}>
@@ -112,33 +136,31 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     );
   }
 
-  // --- Not authenticated ---
+  // --- Not authenticated UI (Lock Screen) ---
   if (!isAuthenticated) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <IconSymbol name="lock.fill" size={64} color={colors.primary} />
         <Text style={[styles.title, { color: colors.text }]}>
-          {t.common.attention === "Atención"
-            ? "Aplicación Bloqueada"
-            : "App Locked"}
+          {t.auth.title}
         </Text>
         <Text style={[styles.subtitle, { color: colors.subtext }]}>
-          {t.common.attention === "Atención"
-            ? "Usa tu huella o reconocimiento facial para entrar."
-            : "Use your fingerprint or face ID to unlock."}
+          {t.auth.subtitle}
         </Text>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary }]}
-          onPress={authenticate}
+          activeOpacity={0.8}
+          onPress={() => authenticate(false)}
         >
           <Text style={styles.buttonText}>
-            {t.common.attention === "Atención" ? "Desbloquear" : "Unlock"}
+            {t.auth.button}
           </Text>
         </TouchableOpacity>
       </View>
     );
   }
 
+  // --- Authenticated ---
   return <>{children}</>;
 };
 
@@ -170,6 +192,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 12,
+    minWidth: 160,
+    alignItems: "center",
   },
   buttonText: {
     color: "#fff",

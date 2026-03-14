@@ -10,12 +10,14 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 
 export default function SettingsScreen() {
   const {
@@ -30,6 +32,7 @@ export default function SettingsScreen() {
   const theme = darkMode ? "dark" : "light";
   const { t } = useI18n();
   const colors = Colors[theme];
+  const paddingTop = useSafeTopPadding();
 
   // ---------------------------------------------------------------------------
   // Passphrase Modal state
@@ -172,7 +175,12 @@ export default function SettingsScreen() {
     <>
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop,
+          },
+        ]}
       >
         <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
         <Text style={[styles.headerTitle, { color: colors.text }]}>
@@ -303,7 +311,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
     padding: 16,
-    paddingTop: 60,
     paddingBottom: 120,
   },
   headerTitle: {

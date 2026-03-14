@@ -5,14 +5,20 @@ import { useI18n } from "@/src/presentation/translations/useI18n";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const { darkMode } = useSettingsStore();
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
   const { t, language } = useI18n();
+  const insets = useSafeAreaInsets();
 
-  const bottomPad = Platform.OS === "android" ? 10 : 8;
+  // On Android with edge-to-edge, we must account for the system navigation bar.
+  // We use the actual inset if available, or a sensible fallback.
+  const bottomPad = Platform.OS === "android" 
+    ? Math.max(insets.bottom, 12) 
+    : insets.bottom || 8;
 
   return (
     <Tabs
@@ -26,12 +32,11 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
-          height: 62,
+          height: 62 + (Platform.OS === "android" ? Math.max(insets.bottom - 10, 0) : 0),
           paddingBottom: bottomPad,
           paddingTop: 8,
-          // position:absolute lets React Navigation apply safe-area
-          // insets so the tab never overlaps the system nav bar.
-          position: "absolute",
+          // Removed absolute positioning as it can cause content to overlap 
+          // or the bar itself to mismatch with system navigation areas on resume.
           elevation: 8,
         },
       }}
