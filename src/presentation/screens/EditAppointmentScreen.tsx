@@ -25,6 +25,8 @@ import {
 } from "react-native";
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 import { AppointmentRepository } from "../../infrastructure/repositories/AppointmentRepository";
+import { SelectedService } from "@/src/application/services/AppointmentService";
+import { Service } from "@/src/domain/entities/Service";
 
 export default function EditAppointmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,7 +61,8 @@ export default function EditAppointmentScreen() {
       d.getMinutes().toString().padStart(2, "0")
     );
   };
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -91,7 +94,18 @@ export default function EditAppointmentScreen() {
       const endD = new Date(d.getTime() + appt.durationMinutes * 60000);
       setEndTimeStr(formatTime24h(endD));
 
-      setSelectedServices(appt.services.map((s) => s.id));
+      setSelectedServices(appt.services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        color: s.color,
+        defaultPrice: s.price, // Repository already COALESCEd this
+      } as any)));
+
+      const initialPrices: Record<string, string> = {};
+      appt.services.forEach((s) => {
+        initialPrices[s.id] = s.price.toString();
+      });
+      setCustomPrices(initialPrices);
     } catch (e) {
       console.error(e);
       addToast(t.appointments.errorLoading, "error");
@@ -100,12 +114,16 @@ export default function EditAppointmentScreen() {
     }
   };
 
-  const toggleService = (serviceId: string) => {
+  const toggleService = (service: Service) => {
     setSelectedServices((prev) =>
-      prev.includes(serviceId)
-        ? prev.filter((s) => s !== serviceId)
-        : [...prev, serviceId],
+      prev.find((s) => s.id === service.id)
+        ? prev.filter((s) => s.id !== service.id)
+        : [...prev, service],
     );
+  };
+
+  const setCustomPrice = (serviceId: string, price: string) => {
+    setCustomPrices((prev) => ({ ...prev, [serviceId]: price }));
   };
 
   const handleSave = async () => {
@@ -142,12 +160,20 @@ export default function EditAppointmentScreen() {
         );
       }
 
+      const servicesToSave: SelectedService[] = selectedServices.map((s) => {
+        const customPrice = customPrices[s.id];
+        return {
+          serviceId: s.id,
+          price: customPrice ? parseFloat(customPrice) : null,
+        };
+      });
+
       const service = new AppointmentService();
       await service.update(
         id,
         combinedDate.toISOString(),
         durNum,
-        selectedServices,
+        servicesToSave,
         notes,
       );
 
@@ -355,44 +381,68 @@ export default function EditAppointmentScreen() {
             </Text>
           ) : (
             services.map((svc) => {
-              const selected = selectedServices.includes(svc.id);
+              const selected = selectedServices.find((s) => s.id === svc.id);
               return (
-                <TouchableOpacity
-                  key={svc.id}
-                  style={[
-                    styles.checkRow,
-                    { borderColor: colors.border },
-                    selected && [
-                      styles.checkRowSelected,
-                      {
-                        borderColor: colors.tint,
-                        backgroundColor: darkMode ? "#1a2a3a" : "#F2F8FF",
-                      },
-                    ],
-                  ]}
-                  onPress={() => toggleService(svc.id)}
-                >
-                  <View style={styles.checkInner}>
-                    <View
-                      style={[styles.colorDot, { backgroundColor: svc.color }]}
-                    />
-                    <Text
-                      style={[
-                        styles.checkText,
-                        { color: colors.text },
-                        selected && [
-                          styles.checkTextSelected,
-                          { color: colors.tint },
-                        ],
-                      ]}
-                    >
-                      {svc.name}
+                <View key={svc.id}>
+                  <TouchableOpacity
+                    style={[
+                      styles.checkRow,
+                      { borderColor: colors.border },
+                      !!selected && [
+                        styles.checkRowSelected,
+                        {
+                          borderColor: colors.tint,
+                          backgroundColor: darkMode ? "#1a2a3a" : "#F2F8FF",
+                        },
+                      ],
+                    ]}
+                    onPress={() => toggleService(svc)}
+                  >
+                    <View style={styles.checkInner}>
+                      <View
+                        style={[styles.colorDot, { backgroundColor: svc.color }]}
+                      />
+                      <Text
+                        style={[
+                          styles.checkText,
+                          { color: colors.text },
+                          !!selected && [
+                            styles.checkTextSelected,
+                            { color: colors.tint },
+                          ],
+                        ]}
+                      >
+                        {svc.name}
+                      </Text>
+                    </View>
+                    <Text style={[styles.checkPrice, { color: colors.subtext }]}>
+                      ${svc.defaultPrice}
                     </Text>
-                  </View>
-                  <Text style={[styles.checkPrice, { color: colors.subtext }]}>
-                    ${svc.defaultPrice}
-                  </Text>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+
+                  {!!selected && (
+                    <View style={styles.overrideContainer}>
+                      <Text style={[styles.overrideLabel, { color: colors.subtext }]}>
+                        {t.services.price}:
+                      </Text>
+                      <TextInput
+                        keyboardType="numeric"
+                        placeholder={svc.defaultPrice.toString()}
+                        placeholderTextColor={colors.subtext}
+                        value={customPrices[svc.id] || ""}
+                        onChangeText={(val) => setCustomPrice(svc.id, val)}
+                        style={[
+                          styles.overrideInput,
+                          {
+                            color: colors.text,
+                            borderColor: colors.border,
+                            backgroundColor: darkMode ? colors.secondaryBackground : "#FFF",
+                          },
+                        ]}
+                      />
+                    </View>
+                  )}
+                </View>
               );
             })
           )}
@@ -530,5 +580,26 @@ const styles = StyleSheet.create({
   checkPrice: {
     fontSize: 14,
     fontWeight: "700",
+  },
+  overrideContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginBottom: 15,
+    paddingRight: 10,
+    gap: 10,
+  },
+  overrideLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  overrideInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    width: 80,
+    textAlign: "right",
   },
 });

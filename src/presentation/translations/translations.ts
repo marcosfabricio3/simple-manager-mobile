@@ -153,6 +153,7 @@ export const translations = {
       emptyDesc: "Añade los servicios que ofreces en tu clínica.",
       cancel: "Anular",
       back: "Atrás",
+      price: "Precio",
     },
     clientProfile: {
       edit: "Editar",
@@ -444,6 +445,7 @@ export const translations = {
       emptyDesc: "Add the services you offer in your clinic.",
       cancel: "Cancel",
       back: "Back",
+      price: "Price",
     },
     clientProfile: {
       edit: "Edit",

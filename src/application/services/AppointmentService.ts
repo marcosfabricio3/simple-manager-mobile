@@ -8,6 +8,8 @@ import { ClientRepository } from "../../infrastructure/repositories/ClientReposi
 import { ExpoNotificationService } from "../../infrastructure/services/ExpoNotificationService";
 import { generateId } from "../utils/id";
 
+export type SelectedService = string | { serviceId: string; price: number | null };
+
 export class AppointmentService {
   private appointmentRepo = new AppointmentRepository();
   private clientRepo = new ClientRepository();
@@ -40,7 +42,7 @@ export class AppointmentService {
     clientPhone: string,
     dateIsoString: string,
     durationMinutes: number,
-    serviceIds: string[],
+    serviceIds: SelectedService[],
     notes?: string,
   ) {
     if (!clientName.trim()) throw new Error("Nombre del cliente es requerido.");
@@ -90,7 +92,7 @@ export class AppointmentService {
     clientId: string,
     dateIsoString: string,
     durationMinutes: number,
-    serviceIds: string[],
+    serviceIds: SelectedService[],
     notes?: string,
   ) {
     if (!clientId) throw new Error("Debes seleccionar un cliente válido.");
@@ -160,7 +162,7 @@ export class AppointmentService {
     id: string,
     dateIsoString: string,
     durationMinutes: number,
-    serviceIds: string[],
+    serviceIds: SelectedService[],
     notes?: string,
   ) {
     if (!id) throw new Error("ID de turno requerido");

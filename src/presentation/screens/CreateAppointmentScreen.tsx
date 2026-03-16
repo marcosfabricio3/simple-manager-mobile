@@ -23,6 +23,8 @@ import {
   View,
 } from "react-native";
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
+import { SelectedService } from "@/src/application/services/AppointmentService";
+import { Service } from "@/src/domain/entities/Service";
 
 export default function CreateAppointmentScreen() {
   const { createWithExisting } = useAppointments();
@@ -56,7 +58,8 @@ export default function CreateAppointmentScreen() {
     );
   };
 
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useFocusEffect(
@@ -65,12 +68,16 @@ export default function CreateAppointmentScreen() {
     }, [])
   );
 
-  const toggleService = (serviceId: string) => {
+  const toggleService = (service: Service) => {
     setSelectedServices((prev) =>
-      prev.includes(serviceId)
-        ? prev.filter((s) => s !== serviceId)
-        : [...prev, serviceId]
+      prev.find((s) => s.id === service.id)
+        ? prev.filter((s) => s.id !== service.id)
+        : [...prev, service]
     );
+  };
+
+  const setCustomPrice = (serviceId: string, price: string) => {
+    setCustomPrices((prev) => ({ ...prev, [serviceId]: price }));
   };
 
   const handleSave = async () => {
@@ -99,11 +106,19 @@ export default function CreateAppointmentScreen() {
         throw new Error(t.appointments.endAfterStart);
       }
 
+      const servicesToSave: SelectedService[] = selectedServices.map((s) => {
+        const customPrice = customPrices[s.id];
+        return {
+          serviceId: s.id,
+          price: customPrice ? parseFloat(customPrice) : null,
+        };
+      });
+
       await createWithExisting(
         selectedClientId,
         combinedDate.toISOString(),
         durNum,
-        selectedServices,
+        servicesToSave,
         notes
       );
 
@@ -298,44 +313,68 @@ export default function CreateAppointmentScreen() {
             </Text>
           ) : (
             services.map((svc) => {
-              const selected = selectedServices.includes(svc.id);
+              const selected = selectedServices.find((s) => s.id === svc.id);
               return (
-                <TouchableOpacity
-                  key={svc.id}
-                  style={[
-                    styles.checkRow,
-                    { borderColor: colors.border },
-                    selected && [
-                      styles.checkRowSelected,
-                      {
-                        borderColor: colors.tint,
-                        backgroundColor: darkMode ? "#1a2a3a" : "#F2F8FF",
-                      },
-                    ],
-                  ]}
-                  onPress={() => toggleService(svc.id)}
-                >
-                  <View style={styles.checkInner}>
-                    <View
-                      style={[styles.colorDot, { backgroundColor: svc.color }]}
-                    />
-                    <Text
-                      style={[
-                        styles.checkText,
-                        { color: colors.text },
-                        selected && [
-                          styles.checkTextSelected,
-                          { color: colors.tint },
-                        ],
-                      ]}
-                    >
-                      {svc.name}
+                <View key={svc.id}>
+                  <TouchableOpacity
+                    style={[
+                      styles.checkRow,
+                      { borderColor: colors.border },
+                      !!selected && [
+                        styles.checkRowSelected,
+                        {
+                          borderColor: colors.tint,
+                          backgroundColor: darkMode ? "#1a2a3a" : "#F2F8FF",
+                        },
+                      ],
+                    ]}
+                    onPress={() => toggleService(svc)}
+                  >
+                    <View style={styles.checkInner}>
+                      <View
+                        style={[styles.colorDot, { backgroundColor: svc.color }]}
+                      />
+                      <Text
+                        style={[
+                          styles.checkText,
+                          { color: colors.text },
+                          !!selected && [
+                            styles.checkTextSelected,
+                            { color: colors.tint },
+                          ],
+                        ]}
+                      >
+                        {svc.name}
+                      </Text>
+                    </View>
+                    <Text style={[styles.checkPrice, { color: colors.subtext }]}>
+                      ${svc.defaultPrice}
                     </Text>
-                  </View>
-                  <Text style={[styles.checkPrice, { color: colors.subtext }]}>
-                    ${svc.defaultPrice}
-                  </Text>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+
+                  {!!selected && (
+                    <View style={styles.overrideContainer}>
+                      <Text style={[styles.overrideLabel, { color: colors.subtext }]}>
+                        {t.services?.price || "Precio"}:
+                      </Text>
+                      <TextInput
+                        keyboardType="numeric"
+                        placeholder={svc.defaultPrice.toString()}
+                        placeholderTextColor={colors.subtext}
+                        value={customPrices[svc.id] || ""}
+                        onChangeText={(val) => setCustomPrice(svc.id, val)}
+                        style={[
+                          styles.overrideInput,
+                          {
+                            color: colors.text,
+                            borderColor: colors.border,
+                            backgroundColor: darkMode ? colors.secondaryBackground : "#FFF",
+                          },
+                        ]}
+                      />
+                    </View>
+                  )}
+                </View>
               );
             })
           )}
@@ -473,5 +512,26 @@ const styles = StyleSheet.create({
   checkPrice: {
     fontSize: 14,
     fontWeight: "700",
+  },
+  overrideContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    marginBottom: 15,
+    paddingRight: 10,
+    gap: 10,
+  },
+  overrideLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  overrideInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    width: 80,
+    textAlign: "right",
   },
 });

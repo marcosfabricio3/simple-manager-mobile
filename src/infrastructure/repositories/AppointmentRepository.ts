@@ -33,7 +33,7 @@ interface AppointmentJoinedRow {
 }
 
 export class AppointmentRepository {
-  async create(appointment: Appointment, serviceIds: string[]): Promise<void> {
+  async create(appointment: Appointment, serviceIds: (string | { serviceId: string, price: number | null })[]): Promise<void> {
     await db.withTransactionAsync(async () => {
       // 1. Insert Appointment
       await db.runAsync(
@@ -61,18 +61,21 @@ export class AppointmentRepository {
 
       // As we didn't inject IDs for the pivot from the domain for simplicity,
       // we can rely on SQLite's random hex function or simply JS generation
-      for (const serviceId of serviceIds) {
+      for (const svc of serviceIds) {
         const pivotId = generateId();
+        const sId = typeof svc === "string" ? svc : svc.serviceId;
+        const sPrice = typeof svc === "string" ? null : svc.price;
 
         await db.runAsync(
           `INSERT INTO appointment_services (
-              id, appointmentId, serviceId, createdAt
-          ) VALUES (?, ?, ?, ?)`,
+              id, appointmentId, serviceId, customPrice, createdAt
+          ) VALUES (?, ?, ?, ?, ?)`,
           [
             pivotId,
             appointment.id,
-            serviceId,
-            new Date().toISOString(), // Standardizing timestamp
+            sId,
+            sPrice,
+            new Date().toISOString(),
           ],
         );
       }
@@ -92,7 +95,7 @@ export class AppointmentRepository {
                             'id', s.id,
                             'name', s.name,
                             'color', s.color,
-                            'price', s.defaultPrice
+                            'price', COALESCE(asPivot.customPrice, s.defaultPrice)
                         )
                     )
                     FROM appointment_services asPivot
@@ -153,7 +156,7 @@ export class AppointmentRepository {
                             'id', s.id,
                             'name', s.name,
                             'color', s.color,
-                            'price', s.defaultPrice
+                            'price', COALESCE(asPivot.customPrice, s.defaultPrice)
                         )
                     )
                     FROM appointment_services asPivot
@@ -208,7 +211,7 @@ export class AppointmentRepository {
                             'id', s.id,
                             'name', s.name,
                             'color', s.color,
-                            'price', s.defaultPrice
+                            'price', COALESCE(asPivot.customPrice, s.defaultPrice)
                         )
                     )
                     FROM appointment_services asPivot
@@ -266,7 +269,7 @@ export class AppointmentRepository {
                             'id', s.id,
                             'name', s.name,
                             'color', s.color,
-                            'price', s.defaultPrice
+                            'price', COALESCE(asPivot.customPrice, s.defaultPrice)
                         )
                     )
                     FROM appointment_services asPivot
@@ -358,7 +361,7 @@ export class AppointmentRepository {
         c.phone as clientPhone,
         s.id as serviceId,
         s.name as serviceName,
-        s.defaultPrice as serviceDefaultPrice,
+        COALESCE(pivot.customPrice, s.defaultPrice) as serviceDefaultPrice,
         s.color as serviceColor
        FROM appointments a
        JOIN clients c ON a.clientId = c.id
@@ -422,7 +425,7 @@ export class AppointmentRepository {
     ]);
   }
 
-  async update(appointment: Appointment, serviceIds: string[]): Promise<void> {
+  async update(appointment: Appointment, serviceIds: (string | { serviceId: string, price: number | null })[]): Promise<void> {
     await db.withTransactionAsync(async () => {
       // 1. Update Appointment
       await db.runAsync(
@@ -449,11 +452,14 @@ export class AppointmentRepository {
       );
 
       // 3. Insert new pivot rows
-      for (const serviceId of serviceIds) {
+      for (const svc of serviceIds) {
         const pivotId = generateId();
+        const sId = typeof svc === "string" ? svc : svc.serviceId;
+        const sPrice = typeof svc === "string" ? null : svc.price;
+
         await db.runAsync(
-          `INSERT INTO appointment_services (id, appointmentId, serviceId, createdAt) VALUES (?, ?, ?, ?)`,
-          [pivotId, appointment.id, serviceId, new Date().toISOString()],
+          `INSERT INTO appointment_services (id, appointmentId, serviceId, customPrice, createdAt) VALUES (?, ?, ?, ?, ?)`,
+          [pivotId, appointment.id, sId, sPrice, new Date().toISOString()],
         );
       }
     });

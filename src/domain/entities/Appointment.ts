@@ -19,10 +19,10 @@ export interface AppointmentWithDetails extends Appointment {
   clientName: string;
   clientPhone?: string;
   services: {
-    id: string;
+    id: string; // Service ID
     name: string;
     color: string;
-    price: number;
+    price: number; // This will be the absolute price (custom or default)
   }[];
   totalPrice: number;
 }

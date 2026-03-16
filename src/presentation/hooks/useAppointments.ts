@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@/src/application/errors/getErrorMessage";
-import { AppointmentService } from "@/src/application/services/AppointmentService";
+import { AppointmentService, SelectedService } from "@/src/application/services/AppointmentService";
 import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -26,7 +26,7 @@ export function useAppointments() {
     clientId: string,
     dateIsoString: string,
     durationMinutes: number,
-    serviceIds: string[],
+    serviceIds: SelectedService[],
     notes?: string,
   ) => {
     try {
@@ -48,7 +48,7 @@ export function useAppointments() {
     clientPhone: string,
     dateIsoString: string,
     durationMinutes: number,
-    serviceIds: string[],
+    serviceIds: SelectedService[],
     notes?: string,
   ) => {
     try {
