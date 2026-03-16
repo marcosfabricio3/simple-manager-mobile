@@ -189,10 +189,12 @@ export default function StatisticsScreen() {
     >
       <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
 
-      {/* Header */}
-      <Text style={[styles.headerTitle, { color: colors.text }]}>
-        {ts.title}
-      </Text>
+      {/* Header Row */}
+      <View style={styles.headerRow}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {ts.title}
+        </Text>
+      </View>
 
       {/* Month navigation */}
       <View style={[styles.monthNav, { backgroundColor: colors.card }]}>
@@ -359,10 +361,15 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   headerTitle: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: "800",
-    marginBottom: 20,
     letterSpacing: -0.5,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 24,
   },
   monthNav: {
     flexDirection: "row",

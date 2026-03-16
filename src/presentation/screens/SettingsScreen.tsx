@@ -1,3 +1,4 @@
+import { useToast } from "@/components/context/ToastContext";
 import { Colors } from "@/constants/theme";
 import { DatabaseBackupService } from "@/src/application/services/DatabaseBackupService";
 import { PdfReportService } from "@/src/application/services/PdfReportService";
@@ -28,6 +29,8 @@ export default function SettingsScreen() {
     language,
     updateSettings,
   } = useSettingsStore();
+
+  const { addToast } = useToast();
 
   const theme = darkMode ? "dark" : "light";
   const { t } = useI18n();
@@ -126,12 +129,10 @@ export default function SettingsScreen() {
                 DROP TABLE IF EXISTS records;
                 PRAGMA foreign_keys = ON;
               `);
-              Alert.alert(t.common.success, t.settings.deleteAllSuccess, [
-                { text: t.common.understood },
-              ]);
+              addToast(t.settings.deleteAllSuccess, "success");
             } catch (error) {
               console.error(error);
-              Alert.alert(t.common.error, t.settings.deleteAllError);
+              addToast(t.settings.deleteAllError, "error");
             }
           },
         },

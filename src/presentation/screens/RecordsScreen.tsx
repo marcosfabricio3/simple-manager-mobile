@@ -21,6 +21,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 import { useI18n } from "@/src/presentation/translations/useI18n";
 
@@ -155,78 +156,83 @@ export default function RecordsScreen() {
       ]}
     >
       <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
-      <Text style={[styles.headerTitle, { color: colors.text }]}>
-        {tr.title}
-      </Text>
 
-      <View style={[styles.formContainer, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+      {/* Header Row */}
+      <View style={styles.headerRow}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          {tr.title}
+        </Text>
+      </View>
+
+      <View style={[styles.formContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.sectionLabel, { color: colors.subtext }]}>
           {editing ? tr.editRecord : tr.newRecord}
         </Text>
         <TextInput
           placeholder={tr.titlePlaceholder}
-          placeholderTextColor={darkMode ? "#666" : "#A1A1AA"}
+          placeholderTextColor={colors.subtext + "80"}
           value={title}
           onChangeText={setTitle}
           style={[
             styles.input,
             {
               borderColor: colors.border,
-              backgroundColor: darkMode ? colors.secondaryBackground : "#fff",
               color: colors.text,
             },
           ]}
         />
         <TextInput
           placeholder={tr.typePlaceholder}
-          placeholderTextColor={darkMode ? "#666" : "#A1A1AA"}
+          placeholderTextColor={colors.subtext + "80"}
           value={type}
           onChangeText={setType}
           style={[
             styles.input,
             {
               borderColor: colors.border,
-              backgroundColor: darkMode ? colors.secondaryBackground : "#fff",
               color: colors.text,
             },
           ]}
         />
-        <Button
-          title={editing ? tr.update : tr.save}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={[styles.submitBtn, { backgroundColor: colors.primary }]}
           onPress={handleSubmit}
-        />
+        >
+          <Text style={styles.submitBtnText}>
+            {editing ? tr.update : tr.save}
+          </Text>
+        </TouchableOpacity>
+
         {editing && (
-          <View style={{ marginTop: 10 }}>
-            <Button
-              title={tr.cancel}
-              color="red"
-              onPress={() => {
-                setEditing(null);
-                setTitle("");
-                setType("");
-              }}
-            />
-          </View>
+          <TouchableOpacity
+            onPress={() => {
+              setEditing(null);
+              setTitle("");
+              setType("");
+            }}
+            style={[styles.cancelBtn, { borderColor: colors.border, marginTop: 10 }]}
+          >
+            <Text style={[styles.cancelBtnText, { color: colors.subtext }]}>
+              {tr.cancel}
+            </Text>
+          </TouchableOpacity>
         )}
       </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+      <Text style={[styles.sectionLabel, { color: colors.subtext, marginTop: 10 }]}>
         {tr.filterSearch}
       </Text>
-      <TextInput
-        placeholder={tr.searchPlaceholder}
-        placeholderTextColor={darkMode ? "#666" : "#8E8E93"}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        style={[
-          styles.searchInput,
-          {
-            borderColor: colors.border,
-            backgroundColor: colors.card,
-            color: colors.text,
-          },
-        ]}
-      />
+      <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <MaterialIcons name="search" size={20} color={colors.subtext} />
+        <TextInput
+          placeholder={tr.searchPlaceholder}
+          placeholderTextColor={colors.subtext + "80"}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={[styles.searchInput, { color: colors.text }]}
+        />
+      </View>
 
       {uniqueTypes.length > 0 && (
         <View>
@@ -324,36 +330,73 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 15,
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 10,
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 24,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    marginBottom: 12,
   },
   formContainer: {
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+    borderWidth: 1,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
   },
   input: {
     borderWidth: 1,
-    padding: 10,
-    marginBottom: 10,
-    borderRadius: 6,
+    padding: 14,
+    borderRadius: 10,
+    fontSize: 15,
+    marginBottom: 12,
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
   },
   searchInput: {
+    flex: 1,
+    fontSize: 15,
+    marginLeft: 10,
+  },
+  submitBtn: {
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  submitBtnText: {
+    color: "white",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  cancelBtn: {
+    padding: 14,
+    borderRadius: 10,
     borderWidth: 1,
-    padding: 8,
-    borderRadius: 20,
-    marginBottom: 10,
+    alignItems: "center",
+  },
+  cancelBtnText: {
+    fontWeight: "700",
+    fontSize: 15,
   },
   filtersContainer: {
     flexDirection: "row",
