@@ -17,8 +17,8 @@ export default function TabLayout() {
   // On Android with edge-to-edge, we must account for the system navigation bar.
   // We use the actual inset if available, or a sensible fallback.
   const bottomPad = Platform.OS === "android" 
-    ? Math.max(insets.bottom, 12) 
-    : insets.bottom || 8;
+    ? Math.max(insets.bottom, 20) 
+    : (insets.bottom || 12);
 
   return (
     <Tabs
@@ -32,9 +32,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
-          height: 62 + (Platform.OS === "android" ? Math.max(insets.bottom - 10, 0) : 0),
+          height: 70 + (Platform.OS === "android" ? Math.max(insets.bottom - 10, 0) : 0),
           paddingBottom: bottomPad,
-          paddingTop: 8,
+          paddingTop: 10,
           // Removed absolute positioning as it can cause content to overlap 
           // or the bar itself to mismatch with system navigation areas on resume.
           elevation: 8,
