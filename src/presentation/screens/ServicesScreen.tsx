@@ -39,6 +39,18 @@ export default function ServicesScreen() {
     "#F59E0B", // Amber
     "#3B82F6", // Blue
     "#64748B", // Slate
+    "#EF4444", // Red
+    "#F97316", // Orange
+    "#84CC16", // Lime
+    "#06B6D4", // Cyan
+    "#0EA5E9", // Sky
+    "#6366F1", // Indigo
+    "#A855F7", // Purple
+    "#D946EF", // Fuchsia
+    "#71717A", // Zinc
+    "#14B8A6", // Teal
+    "#059669", // Green
+    "#78350F", // Brown
   ];
 
   const [name, setName] = useState("");
