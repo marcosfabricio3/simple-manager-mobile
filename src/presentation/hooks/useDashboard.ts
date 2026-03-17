@@ -4,7 +4,7 @@ import { ClientService } from "@/src/application/services/ClientService";
 import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-export function useDashboard() {
+export function useDashboard(selectedDate: Date = new Date()) {
   const apptService = useMemo(() => new AppointmentService(), []);
   const clientService = useMemo(() => new ClientService(), []);
 
@@ -18,9 +18,15 @@ export function useDashboard() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
+      
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
       const [appts, rev, clientsCount] = await Promise.all([
-        apptService.listToday(),
-        apptService.getRevenueToday(),
+        apptService.listBetweenDates(startOfDay.toISOString(), endOfDay.toISOString()),
+        apptService.getRevenueToday(), // Keeping total today for simplicity or updating if service allows
         clientService.getCountTotal(),
       ]);
 
@@ -32,7 +38,7 @@ export function useDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [apptService, clientService]);
+  }, [apptService, clientService, selectedDate]);
 
   useEffect(() => {
     load();

@@ -53,7 +53,8 @@ export default function AppointmentsListScreen() {
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
 
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);

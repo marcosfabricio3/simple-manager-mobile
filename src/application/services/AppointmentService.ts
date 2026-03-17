@@ -1,7 +1,8 @@
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import {
-  Appointment
+  Appointment, RecurrenceType
 } from "../../domain/entities/Appointment";
+import { addWeeks, addMonths } from "date-fns";
 import { Client } from "../../domain/entities/Client";
 import { AppointmentRepository } from "../../infrastructure/repositories/AppointmentRepository";
 import { ClientRepository } from "../../infrastructure/repositories/ClientRepository";
@@ -34,6 +35,43 @@ export class AppointmentService {
     );
   }
 
+  private async handleRecurrence(
+    baseAppointment: Appointment,
+    serviceIds: SelectedService[],
+    recurrence: RecurrenceType
+  ) {
+    if (recurrence === "none") return;
+
+    const startDate = new Date(baseAppointment.date);
+
+    // Generate for 1 year ahead
+    let maxCount = 0;
+    if (recurrence === "weekly") maxCount = 52;
+    else if (recurrence === "biweekly") maxCount = 26;
+    else if (recurrence === "monthly") maxCount = 12;
+
+    for (let i = 1; i < maxCount; i++) {
+      let nextDate: Date;
+      if (recurrence === "weekly") nextDate = addWeeks(startDate, i);
+      else if (recurrence === "biweekly") nextDate = addWeeks(startDate, i * 2);
+      else nextDate = addMonths(startDate, i);
+
+      const instance: Appointment = {
+        ...baseAppointment,
+        id: generateId(),
+        date: nextDate.toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      await this.appointmentRepo.create(instance, serviceIds);
+      const client = await this.clientRepo.findById(baseAppointment.clientId);
+      if (client) {
+        await this.scheduleReminder(instance, client.name);
+      }
+    }
+  }
+
   /**
    * Creates an appointment. Creates the client on the fly if it doesn't exist.
    */
@@ -43,6 +81,7 @@ export class AppointmentService {
     dateIsoString: string,
     durationMinutes: number,
     serviceIds: SelectedService[],
+    recurrence: RecurrenceType = "none",
     notes?: string,
   ) {
     if (!clientName.trim()) throw new Error("Nombre del cliente es requerido.");
@@ -64,6 +103,8 @@ export class AppointmentService {
 
     await this.clientRepo.create(client);
 
+    const seriesId = generateId();
+
     // 2. Handle Appointment
     const appointment: Appointment = {
       id: generateId(),
@@ -73,6 +114,8 @@ export class AppointmentService {
       status: "pending",
       paymentStatus: "unpaid",
       notes: notes?.trim() || "",
+      seriesId,
+      recurrence,
       createdAt: now,
       updatedAt: now,
       isDeleted: false,
@@ -80,6 +123,9 @@ export class AppointmentService {
 
     // 3. Persist atomically
     await this.appointmentRepo.create(appointment, serviceIds);
+
+    // 4. Handle Recurrence
+    await this.handleRecurrence(appointment, serviceIds, recurrence);
 
     // 4. Schedule Notification
     await this.scheduleReminder(appointment, client.name);
@@ -93,6 +139,7 @@ export class AppointmentService {
     dateIsoString: string,
     durationMinutes: number,
     serviceIds: SelectedService[],
+    recurrence: RecurrenceType = "none",
     notes?: string,
   ) {
     if (!clientId) throw new Error("Debes seleccionar un cliente válido.");
@@ -102,6 +149,8 @@ export class AppointmentService {
 
     const now = new Date().toISOString();
 
+    const seriesId = generateId();
+
     const appointment: Appointment = {
       id: generateId(),
       clientId: clientId, // Use the proper ID
@@ -110,12 +159,17 @@ export class AppointmentService {
       status: "pending",
       paymentStatus: "unpaid",
       notes: notes,
+      seriesId,
+      recurrence,
       createdAt: now,
       updatedAt: now,
       isDeleted: false,
     };
 
     await this.appointmentRepo.create(appointment, serviceIds);
+
+    // Handle Recurrence
+    await this.handleRecurrence(appointment, serviceIds, recurrence);
 
     const client = await this.clientRepo.findById(clientId);
     if (client) {
@@ -181,6 +235,8 @@ export class AppointmentService {
       status: appt.status,
       paymentStatus: appt.paymentStatus,
       notes,
+      seriesId: appt.seriesId,
+      recurrence: appt.recurrence,
       createdAt: appt.createdAt,
       updatedAt: new Date().toISOString(),
       isDeleted: false,
@@ -200,5 +256,51 @@ export class AppointmentService {
     if (!clientId)
       throw new Error("Client ID es requerido para obtener métricas");
     return await this.appointmentRepo.getClientMetrics(clientId);
+  }
+
+  async deleteSeries(id: string, mode: "single" | "future" | "all") {
+    const appt = await this.appointmentRepo.findById(id);
+    if (!appt) return;
+
+    if (mode === "single") {
+      await this.delete(id);
+    } else {
+      const allUpcoming = await this.listUpcoming();
+      const seriesInstances = allUpcoming.filter(a => a.seriesId === appt.seriesId);
+
+      for (const instance of seriesInstances) {
+        if (mode === "all" || (mode === "future" && instance.date >= appt.date)) {
+          await this.delete(instance.id);
+        }
+      }
+    }
+  }
+
+  async updateSeries(
+    id: string,
+    mode: "single" | "future" | "all",
+    data: { dateIsoString: string, durationMinutes: number, serviceIds: SelectedService[], notes?: string }
+  ) {
+    const appt = await this.appointmentRepo.findById(id);
+    if (!appt) return;
+
+    if (mode === "single") {
+      await this.update(id, data.dateIsoString, data.durationMinutes, data.serviceIds, data.notes);
+    } else {
+      const allUpcoming = await this.listUpcoming();
+      const seriesInstances = allUpcoming.filter(a => a.seriesId === appt.seriesId);
+
+      for (const instance of seriesInstances) {
+        if (mode === "all" || (mode === "future" && instance.date >= appt.date)) {
+          // Keep the same time of day but update the date based on instance's original date
+          // For simplicity in this first version, we update all to the SAME data but preserving their relative dates
+          // However, usually updating a series means updating the data (notes, services) but keeping the dates
+          // If the user wants to change the TIME for all, they usually expect all future occurrences to shift too.
+          // For now, we update services and notes for all.
+          
+          await this.update(instance.id, instance.date, data.durationMinutes, data.serviceIds, data.notes);
+        }
+      }
+    }
   }
 }

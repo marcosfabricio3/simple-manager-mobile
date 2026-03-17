@@ -1,7 +1,6 @@
 import { useToast } from "@/components/context/ToastContext";
 import { Colors } from "@/constants/theme";
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
-import { Client } from "@/src/domain/entities/Client";
 import { ClientSelector } from "@/src/presentation/components/ClientSelector";
 import { useAppointments } from "@/src/presentation/hooks/useAppointments";
 import { useClients } from "@/src/presentation/hooks/useClients";
@@ -35,11 +34,14 @@ export default function CreateAppointmentScreen() {
   const params = useLocalSearchParams();
   const paddingTop = useSafeTopPadding();
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
   const [selectedClientId, setSelectedClientId] = useState<
     string | undefined
   >(params.clientId as string);
   const [dateStr, setDateStr] = useState(
-    params.date ? (params.date as string) : new Date().toISOString().split("T")[0]
+    params.date ? (params.date as string) : todayStr
   );
   const [timeStr, setTimeStr] = useState("");
   const [endTimeStr, setEndTimeStr] = useState("");
@@ -49,6 +51,7 @@ export default function CreateAppointmentScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [recurrence, setRecurrence] = useState<"none" | "weekly" | "biweekly" | "monthly">("none");
 
   const formatTime24h = (d: Date) => {
     return (
@@ -65,7 +68,19 @@ export default function CreateAppointmentScreen() {
   useFocusEffect(
     useCallback(() => {
       loadClients();
-    }, [])
+      
+      // Reset form state to ensure a clean slate for new registrations
+      setSelectedClientId(params.clientId as string | undefined);
+      setDateStr(params.date ? (params.date as string) : todayStr);
+      setTimeStr("");
+      setEndTimeStr("");
+      setNotes("");
+      setSelectedServices([]);
+      setCustomPrices({});
+      setDateObj(new Date());
+      setRecurrence("none");
+      setIsSubmitting(false);
+    }, [loadClients, params.clientId, params.date])
   );
 
   const toggleService = (service: Service) => {
@@ -119,11 +134,16 @@ export default function CreateAppointmentScreen() {
         combinedDate.toISOString(),
         durNum,
         servicesToSave,
+        recurrence,
         notes
       );
 
       addToast(t.appointments.createSuccess, "success");
-      router.replace("/(tabs)/appointments");
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)/appointments");
+      }
     } catch (error) {
       addToast(error instanceof Error ? error.message : "Error", "error");
     } finally {
@@ -202,7 +222,10 @@ export default function CreateAppointmentScreen() {
                 if (Platform.OS === "android") setShowDatePicker(false);
                 if (selectedDate) {
                   setDateObj(selectedDate);
-                  setDateStr(selectedDate.toISOString().split("T")[0]);
+                  const y = selectedDate.getFullYear();
+                  const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
+                  const d = String(selectedDate.getDate()).padStart(2, "0");
+                  setDateStr(`${y}-${m}-${d}`);
                 }
               }}
             />
@@ -297,6 +320,46 @@ export default function CreateAppointmentScreen() {
               />
             )}
         </View>
+
+        {/* Recurrence Selector - Hidden for now */}
+        {/*
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+            {t.appointments.recurrence}
+          </Text>
+          <View style={styles.recurrenceRow}>
+            {(["none", "weekly", "biweekly", "monthly"] as const).map((r) => (
+              <TouchableOpacity
+                key={r}
+                style={[
+                  styles.recururrenceButton,
+                  { borderColor: colors.border },
+                  recurrence === r && {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary,
+                  },
+                ]}
+                onPress={() => setRecurrence(r)}
+              >
+                <Text
+                  style={[
+                    styles.recurrenceText,
+                    { color: colors.text },
+                    recurrence === r && { color: "#FFF" },
+                  ]}
+                >
+                  {t.appointments[`recurrence_${r}` as keyof typeof t.appointments]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        */}
 
         <View
           style={[
@@ -443,7 +506,22 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 20,
-    paddingBottom: 120,
+    paddingBottom: 150,
+  },
+  recurrenceRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  recurrenceButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  recurrenceText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   card: {
     padding: 16,

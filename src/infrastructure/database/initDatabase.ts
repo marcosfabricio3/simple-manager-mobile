@@ -44,6 +44,8 @@ export function initDatabase() {
             status TEXT NOT NULL,
             paymentStatus TEXT NOT NULL DEFAULT 'unpaid',
             notes TEXT,
+            seriesId TEXT NOT NULL,
+            recurrence TEXT NOT NULL DEFAULT 'none',
             createdAt TEXT NOT NULL,
             updatedAt TEXT NOT NULL,
             isDeleted INTEGER NOT NULL,
@@ -66,7 +68,20 @@ export function initDatabase() {
     db.execSync(
       `ALTER TABLE appointments ADD COLUMN paymentStatus TEXT NOT NULL DEFAULT 'unpaid';`,
     );
-  } catch (e) {
-    // Column already exists, safe to ignore.
-  }
+  } catch (e) {}
+
+  try {
+    db.execSync(
+      `ALTER TABLE appointments ADD COLUMN seriesId TEXT;`,
+    );
+    db.execSync(
+      `UPDATE appointments SET seriesId = id WHERE seriesId IS NULL;`,
+    );
+  } catch (e) {}
+
+  try {
+    db.execSync(
+      `ALTER TABLE appointments ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'none';`,
+    );
+  } catch (e) {}
 }

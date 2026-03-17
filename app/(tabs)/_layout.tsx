@@ -67,7 +67,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="appointments"
         options={{
-          title: language === "es" ? "Turnos" : "Schedule",
+          title: language === "es" ? "Calendario" : "Schedule",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={26} name="calendar" color={color} />
           ),

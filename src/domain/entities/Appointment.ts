@@ -1,5 +1,6 @@
 export type AppointmentStatus = "pending" | "cancelled" | "completed";
 export type PaymentStatus = "paid" | "unpaid";
+export type RecurrenceType = "none" | "weekly" | "biweekly" | "monthly";
 
 export interface Appointment {
   id: string;
@@ -12,6 +13,8 @@ export interface Appointment {
   updatedAt: string;
   isDeleted: boolean;
   notes?: string;
+  seriesId: string;
+  recurrence: RecurrenceType;
 }
 
 // Extends the base Appointment for the UI to display the joined data cleanly

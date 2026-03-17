@@ -23,6 +23,8 @@ interface AppointmentJoinedRow {
   createdAt: string;
   updatedAt: string;
   isDeleted: number;
+  seriesId: string;
+  recurrence: "none" | "weekly" | "biweekly" | "monthly";
   clientName: string;
   clientPhone?: string;
   servicesJson: string; // From JSON_GROUP_ARRAY
@@ -38,8 +40,8 @@ export class AppointmentRepository {
       // 1. Insert Appointment
       await db.runAsync(
         `INSERT INTO appointments (
-            id, clientId, date, durationMinutes, status, paymentStatus, notes, createdAt, updatedAt, isDeleted
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, clientId, date, durationMinutes, status, paymentStatus, notes, seriesId, recurrence, createdAt, updatedAt, isDeleted
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           appointment.id,
           appointment.clientId,
@@ -48,6 +50,8 @@ export class AppointmentRepository {
           appointment.status,
           appointment.paymentStatus,
           appointment.notes || null,
+          appointment.seriesId,
+          appointment.recurrence,
           appointment.createdAt,
           appointment.updatedAt,
           appointment.isDeleted ? 1 : 0,
@@ -127,6 +131,8 @@ export class AppointmentRepository {
         notes: r.notes,
         clientName: r.clientName,
         clientPhone: r.clientPhone,
+        seriesId: r.seriesId,
+        recurrence: r.recurrence,
         services,
         totalPrice,
       };
@@ -191,6 +197,8 @@ export class AppointmentRepository {
         notes: r.notes,
         clientName: r.clientName,
         clientPhone: r.clientPhone,
+        seriesId: r.seriesId,
+        recurrence: r.recurrence,
         services,
         totalPrice,
       };
@@ -243,6 +251,8 @@ export class AppointmentRepository {
         notes: r.notes,
         clientName: r.clientName,
         clientPhone: r.clientPhone,
+        seriesId: r.seriesId,
+        recurrence: r.recurrence,
         services,
         totalPrice,
       };
@@ -303,6 +313,8 @@ export class AppointmentRepository {
         notes: r.notes,
         clientName: r.clientName,
         clientPhone: r.clientPhone,
+        seriesId: r.seriesId,
+        recurrence: r.recurrence,
         services,
         totalPrice,
       };
@@ -389,6 +401,8 @@ export class AppointmentRepository {
           isDeleted: row.isDeleted === 1,
           clientName: row.clientName,
           clientPhone: row.clientPhone,
+          seriesId: row.seriesId,
+          recurrence: row.recurrence,
           services: [],
           totalPrice: 0,
         });
@@ -430,7 +444,7 @@ export class AppointmentRepository {
       // 1. Update Appointment
       await db.runAsync(
         `UPDATE appointments 
-         SET clientId = ?, date = ?, durationMinutes = ?, status = ?, paymentStatus = ?, notes = ?, updatedAt = ?, isDeleted = ?
+         SET clientId = ?, date = ?, durationMinutes = ?, status = ?, paymentStatus = ?, notes = ?, seriesId = ?, recurrence = ?, updatedAt = ?, isDeleted = ?
          WHERE id = ?`,
         [
           appointment.clientId,
@@ -439,6 +453,8 @@ export class AppointmentRepository {
           appointment.status,
           appointment.paymentStatus,
           appointment.notes || null,
+          appointment.seriesId,
+          appointment.recurrence,
           appointment.updatedAt,
           appointment.isDeleted ? 1 : 0,
           appointment.id,

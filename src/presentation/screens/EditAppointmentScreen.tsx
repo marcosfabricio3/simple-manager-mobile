@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Button,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -27,9 +28,13 @@ import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 import { AppointmentRepository } from "../../infrastructure/repositories/AppointmentRepository";
 import { SelectedService } from "@/src/application/services/AppointmentService";
 import { Service } from "@/src/domain/entities/Service";
+import { useAppointments } from "@/src/presentation/hooks/useAppointments";
+import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
+import { useAppointmentActions } from "@/src/presentation/hooks/useAppointmentActions";
 
 export default function EditAppointmentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { updateSeries, removeSeries, load: loadAll } = useAppointments();
   const { darkMode } = useSettingsStore();
 
   const theme = darkMode ? "dark" : "light";
@@ -39,6 +44,7 @@ export default function EditAppointmentScreen() {
   const { clients, load: loadClients } = useClients();
   const { addToast } = useToast();
   const { t } = useI18n();
+  const { deleteAppointmentWithPrompt } = useAppointmentActions();
   const paddingTop = useSafeTopPadding();
 
   const [selectedClientId, setSelectedClientId] = useState<
@@ -54,6 +60,11 @@ export default function EditAppointmentScreen() {
   const [showStartTimePicker, setShowStartTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [appointment, setAppointment] = useState<AppointmentWithDetails | null>(null);
+  const [showSeriesModal, setShowSeriesModal] = useState(false);
+  const [pendingOp, setPendingOp] = useState<"update" | "delete" | null>(null);
+
   const formatTime24h = (d: Date) => {
     return (
       d.getHours().toString().padStart(2, "0") +
@@ -64,7 +75,6 @@ export default function EditAppointmentScreen() {
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [customPrices, setCustomPrices] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (id) {
@@ -81,13 +91,17 @@ export default function EditAppointmentScreen() {
         router.back();
         return;
       }
+      setAppointment(appt);
 
       setSelectedClientId(appt.clientId);
       setNotes(appt.notes || "");
 
       const d = new Date(appt.date);
       setDateObj(d);
-      setDateStr(d.toISOString().split("T")[0]);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dayStr = String(d.getDate()).padStart(2, "0");
+      setDateStr(`${y}-${m}-${dayStr}`);
 
       setTimeStr(formatTime24h(d));
 
@@ -98,7 +112,7 @@ export default function EditAppointmentScreen() {
         id: s.id,
         name: s.name,
         color: s.color,
-        defaultPrice: s.price, // Repository already COALESCEd this
+        defaultPrice: s.price,
       } as any)));
 
       const initialPrices: Record<string, string> = {};
@@ -126,15 +140,22 @@ export default function EditAppointmentScreen() {
     setCustomPrices((prev) => ({ ...prev, [serviceId]: price }));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (mode: "single" | "future" | "all" = "single") => {
+    // If it's a series and no mode was selected yet, show modal (DISABLED for now)
+    /*
+    if (appointment?.seriesId && appointment.recurrence !== "none" && !pendingOp) {
+      setPendingOp("update");
+      setShowSeriesModal(true);
+      return;
+    }
+    */
+
     setIsSubmitting(true);
     try {
       if (!id) throw new Error("ID de turno faltante");
 
       if (!dateStr || !timeStr) {
-        throw new Error(
-          t.appointments.completeFields,
-        );
+        throw new Error(t.appointments.completeFields);
       }
 
       const combinedDate = new Date(`${dateStr}T${timeStr}:00`);
@@ -155,9 +176,7 @@ export default function EditAppointmentScreen() {
         (combinedEndDate.getTime() - combinedDate.getTime()) / 60000,
       );
       if (durNum <= 0) {
-        throw new Error(
-          t.appointments.endAfterStart,
-        );
+        throw new Error(t.appointments.endAfterStart);
       }
 
       const servicesToSave: SelectedService[] = selectedServices.map((s) => {
@@ -169,21 +188,47 @@ export default function EditAppointmentScreen() {
       });
 
       const service = new AppointmentService();
-      await service.update(
-        id,
-        combinedDate.toISOString(),
-        durNum,
-        servicesToSave,
-        notes,
-      );
+      if (appointment?.seriesId && mode !== "single") {
+        await updateSeries(id, mode, {
+          date: combinedDate.toISOString(),
+          durationMinutes: durNum,
+          services: servicesToSave,
+          notes,
+        });
+      } else {
+        await service.update(
+          id,
+          combinedDate.toISOString(),
+          durNum,
+          servicesToSave,
+          notes,
+        );
+      }
 
       addToast(t.appointments.updateSuccess, "success");
-      router.replace("/(tabs)/appointments");
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)/appointments");
+      }
     } catch (error) {
       addToast(error instanceof Error ? error.message : "Error", "error");
     } finally {
       setIsSubmitting(false);
+      setPendingOp(null);
     }
+  };
+
+  const handleDeletePrompt = () => {
+    if (!id) return;
+    deleteAppointmentWithPrompt(id, () => {
+      addToast(t.appointments.deleteSuccess || "Turno eliminado", "success");
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)/appointments");
+      }
+    });
   };
 
   if (isLoading) {
@@ -270,7 +315,10 @@ export default function EditAppointmentScreen() {
                 if (Platform.OS === "android") setShowDatePicker(false);
                 if (selectedDate) {
                   setDateObj(selectedDate);
-                  setDateStr(selectedDate.toISOString().split("T")[0]);
+                  const y = selectedDate.getFullYear();
+                  const m = String(selectedDate.getMonth() + 1).padStart(2, "0");
+                  const d = String(selectedDate.getDate()).padStart(2, "0");
+                  setDateStr(`${y}-${m}-${d}`);
                 }
               }}
             />
@@ -478,10 +526,10 @@ export default function EditAppointmentScreen() {
           />
         </View>
 
-        <View style={{ marginBottom: 40, marginTop: 10 }}>
+        <View style={{ marginBottom: 40, marginTop: 10, gap: 12 }}>
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={handleSave}
+            onPress={() => handleSave("single")}
             disabled={isSubmitting}
             style={{
               backgroundColor: colors.primary,
@@ -496,10 +544,97 @@ export default function EditAppointmentScreen() {
             }}
           >
             <Text style={{ color: "white", fontWeight: "800", fontSize: 16 }}>
-              {isSubmitting ? t.appointments.saving : t.appointments.saveCmd}
+              {isSubmitting && pendingOp === "update" ? t.appointments.saving : t.appointments.saveCmd}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleDeletePrompt}
+            disabled={isSubmitting}
+            style={{
+              backgroundColor: darkMode ? "#442222" : "#FFF0F0",
+              padding: 16,
+              borderRadius: 12,
+              alignItems: "center",
+              borderWidth: 1,
+              borderColor: "#FF4444",
+            }}
+          >
+            <Text style={{ color: "#FF4444", fontWeight: "800", fontSize: 16 }}>
+              {isSubmitting && pendingOp === "delete" ? t.appointments.deleting : t.appointments.deleteRecord}
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Modal for series management - Hidden for now */}
+        {/*
+        <Modal
+          visible={showSeriesModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setShowSeriesModal(false);
+            setPendingOp(null);
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                {pendingOp === "update" ? t.appointments.editSeriesTitle : t.appointments.deleteSeriesTitle}
+              </Text>
+              <Text style={[styles.modalMsg, { color: colors.subtext }]}>
+                {t.appointments.deleteSeriesMsg}
+              </Text>
+
+              <View style={styles.modalOptions}>
+                <TouchableOpacity
+                  style={[styles.modalOption, { borderBottomColor: colors.border }]}
+                  onPress={() => {
+                    setShowSeriesModal(false);
+                    if (pendingOp === "update") handleSave("single");
+                    else handleDelete("single");
+                  }}
+                >
+                  <Text style={[styles.modalOptionText, { color: colors.primary }]}>{t.appointments.optionSingle}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalOption, { borderBottomColor: colors.border }]}
+                  onPress={() => {
+                    setShowSeriesModal(false);
+                    if (pendingOp === "update") handleSave("future");
+                    else handleDelete("future");
+                  }}
+                >
+                  <Text style={[styles.modalOptionText, { color: colors.primary }]}>{t.appointments.optionFuture}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={() => {
+                    setShowSeriesModal(false);
+                    if (pendingOp === "update") handleSave("all");
+                    else handleDelete("all");
+                  }}
+                >
+                  <Text style={[styles.modalOptionText, { color: colors.primary }]}>{t.appointments.optionAll}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => {
+                  setShowSeriesModal(false);
+                  setPendingOp(null);
+                }}
+              >
+                <Text style={{ color: colors.subtext, fontWeight: "600" }}>{t.common?.cancel || "Cancelar"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+        */}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -511,7 +646,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 20,
-    paddingBottom: 120,
+    paddingBottom: 150,
   },
   card: {
     padding: 16,
@@ -601,5 +736,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     width: 80,
     textAlign: "right",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalContent: {
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalMsg: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  modalOptions: {
+    width: "100%",
+    marginBottom: 20,
+  },
+  modalOption: {
+    paddingVertical: 16,
+    width: "100%",
+    alignItems: "center",
+    borderBottomWidth: 1,
+  },
+  modalOptionText: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  modalCancel: {
+    padding: 12,
   },
 });

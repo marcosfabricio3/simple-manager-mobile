@@ -15,6 +15,7 @@ interface Props {
   onEdit?: (id: string) => void;
   onStatusUpdate?: () => void;
   concise?: boolean;
+  isPast?: boolean;
 }
 export function AppointmentCard({
   appointment,
@@ -22,6 +23,7 @@ export function AppointmentCard({
   onEdit,
   onStatusUpdate,
   concise,
+  isPast,
 }: Props) {
   const { deleteAppointmentWithPrompt, togglePaymentStatus } = useAppointmentActions();
   const { darkMode, language } = useSettingsStore();
@@ -52,7 +54,13 @@ export function AppointmentCard({
       completed: { color: colors.success, label: t.appointments.completed },
       cancelled: { color: colors.danger, label: t.appointments.cancelled },
     };
-    const current = statusMap[status] || statusMap.pending;
+    
+    let current = statusMap[status] || statusMap.pending;
+    
+    // Override label if it's past and still pending
+    if (isPast && status === "pending") {
+      current = { ...current, label: t.appointments.passed };
+    }
 
     return (
       <View style={[styles.badge, { backgroundColor: current.color + "15" }]}>
@@ -134,6 +142,7 @@ export function AppointmentCard({
       style={[
         styles.card,
         { backgroundColor: colors.card, borderColor: colors.border },
+        isPast && { opacity: 0.5, grayscale: 1 } as any,
       ]}
     >
       <View style={styles.header}>
@@ -143,6 +152,9 @@ export function AppointmentCard({
           </Text>
           <Text style={[styles.clientNameLarge, { color: colors.text }]}>
             {appointment.clientName}
+            {appointment.recurrence !== "none" && (
+              <MaterialIcons name="repeat" size={16} color={colors.primary} style={{ marginLeft: 8 }} />
+            )}
           </Text>
         </View>
         <StatusBadge status={appointment.status} />

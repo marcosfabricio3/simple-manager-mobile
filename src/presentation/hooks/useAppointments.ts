@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@/src/application/errors/getErrorMessage";
 import { AppointmentService, SelectedService } from "@/src/application/services/AppointmentService";
-import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
+import { AppointmentWithDetails, RecurrenceType } from "@/src/domain/entities/Appointment";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function useAppointments() {
@@ -27,6 +27,7 @@ export function useAppointments() {
     dateIsoString: string,
     durationMinutes: number,
     serviceIds: SelectedService[],
+    recurrence: RecurrenceType = "none",
     notes?: string,
   ) => {
     try {
@@ -35,6 +36,7 @@ export function useAppointments() {
         dateIsoString,
         durationMinutes,
         serviceIds,
+        recurrence,
         notes,
       );
       await load();
@@ -49,6 +51,7 @@ export function useAppointments() {
     dateIsoString: string,
     durationMinutes: number,
     serviceIds: SelectedService[],
+    recurrence: RecurrenceType = "none",
     notes?: string,
   ) => {
     try {
@@ -58,17 +61,9 @@ export function useAppointments() {
         dateIsoString,
         durationMinutes,
         serviceIds,
+        recurrence,
         notes,
       );
-      await load();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
-  };
-
-  const remove = async (id: string) => {
-    try {
-      await serviceManager.delete(id);
       await load();
     } catch (error) {
       throw new Error(getErrorMessage(error));
@@ -85,6 +80,29 @@ export function useAppointments() {
     load,
     createWithExisting,
     createNewClientAndAppt,
-    remove,
+    remove: async (id: string) => {
+      try {
+        await serviceManager.delete(id);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    removeSeries: async (id: string, mode: "single" | "future" | "all") => {
+      try {
+        await serviceManager.deleteSeries(id, mode);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    },
+    updateSeries: async (id: string, mode: "single" | "future" | "all", data: any) => {
+      try {
+        await serviceManager.updateSeries(id, mode, data);
+        await load();
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      }
+    }
   };
 }
