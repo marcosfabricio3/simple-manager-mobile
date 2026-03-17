@@ -8,7 +8,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
+  Alert,
   Platform,
   StatusBar,
   StyleSheet,
@@ -16,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useAppointmentActions } from "@/src/presentation/hooks/useAppointmentActions";
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 import {
   Calendar,
@@ -42,10 +43,11 @@ LocaleConfig.locales['en'] = {
   dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   today: 'Today'
 };
-import { format, addMinutes, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
+import { format, addMinutes, startOfWeek, endOfWeek, eachDayOfInterval, addDays, subDays } from "date-fns";
 
 export default function AppointmentsListScreen() {
   const { appointments, loadMonth, loading } = useMonthlyAppointments();
+  const { deleteAppointmentWithPrompt, togglePaymentStatus } = useAppointmentActions();
   const { darkMode, language } = useSettingsStore();
   const { t } = useI18n();
   const paddingTop = useSafeTopPadding();
@@ -58,7 +60,7 @@ export default function AppointmentsListScreen() {
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
-  const [viewMode, setViewMode] = useState<"day" | "week" | "month">("day");
+  const [viewMode, setViewMode] = useState<"day" | "month">("day");
 
   useFocusEffect(
     useCallback(() => {
@@ -80,6 +82,18 @@ export default function AppointmentsListScreen() {
   const onDateChanged = useCallback((date: string) => {
     setSelectedDate(date);
   }, []);
+
+  const handlePrevDay = useCallback(() => {
+    const current = new Date(selectedDate + "T12:00:00");
+    const prev = subDays(current, 1);
+    onDateChanged(format(prev, "yyyy-MM-dd"));
+  }, [selectedDate, onDateChanged]);
+
+  const handleNextDay = useCallback(() => {
+    const current = new Date(selectedDate + "T12:00:00");
+    const next = addDays(current, 1);
+    onDateChanged(format(next, "yyyy-MM-dd"));
+  }, [selectedDate, onDateChanged]);
 
   const markedDates = useMemo(() => {
     const marks: Record<string, any> = {};
@@ -147,18 +161,8 @@ export default function AppointmentsListScreen() {
   }, [appointments, colors.primary]);
 
   const timelineDates = useMemo(() => {
-    if (viewMode === "day") return selectedDate;
-    
-    // For week view (3 days), we provide an array of dates
-    const dates = [];
-    const baseDate = new Date(selectedDate + "T12:00:00");
-    for (let i = 0; i < 3; i++) {
-        const d = new Date(baseDate);
-        d.setDate(baseDate.getDate() + i);
-        dates.push(format(d, "yyyy-MM-dd"));
-    }
-    return dates;
-  }, [selectedDate, viewMode]);
+    return selectedDate;
+  }, [selectedDate]);
 
   return (
     <CalendarProvider
@@ -187,28 +191,44 @@ export default function AppointmentsListScreen() {
                 {currentMonth.toString().padStart(2, '0')}/{currentYear}
               </Text>
             ) : (
-              <TouchableOpacity 
-                activeOpacity={0.7}
-                onPress={() => setViewMode("month")}
-                style={{ flexDirection: "row", alignItems: "center" }}
-              >
-                <Text style={[styles.listSub, { color: colors.subtext }]}>
-                  {new Date(selectedDate + "T12:00:00").toLocaleDateString(
-                    language === "es" ? "es-ES" : "en-US",
-                    {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "long",
-                    },
-                  )}
-                </Text>
-                <MaterialIcons 
-                  name="calendar-today" 
-                  size={14} 
-                  color={colors.primary} 
-                  style={{ marginLeft: 6, opacity: 0.8 }} 
-                />
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <TouchableOpacity 
+                  onPress={handlePrevDay}
+                  style={{ padding: 4, marginRight: 4 }}
+                >
+                  <MaterialIcons name="chevron-left" size={24} color={colors.primary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  activeOpacity={0.7}
+                  onPress={() => setViewMode("month")}
+                  style={{ flexDirection: "row", alignItems: "center" }}
+                >
+                  <Text style={[styles.listSub, { color: colors.subtext }]}>
+                    {new Date(selectedDate + "T12:00:00").toLocaleDateString(
+                      language === "es" ? "es-ES" : "en-US",
+                      {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "long",
+                      },
+                    )}
+                  </Text>
+                  <MaterialIcons 
+                    name="calendar-today" 
+                    size={14} 
+                    color={colors.primary} 
+                    style={{ marginLeft: 6, opacity: 0.8 }} 
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  onPress={handleNextDay}
+                  style={{ padding: 4, marginLeft: 4 }}
+                >
+                  <MaterialIcons name="chevron-right" size={24} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
             )}
           </View>
           <View style={[styles.toggleContainer, { backgroundColor: colors.secondaryBackground }]}>
@@ -218,14 +238,6 @@ export default function AppointmentsListScreen() {
             >
               <Text style={[styles.toggleText, { color: viewMode === "day" ? "white" : colors.subtext }]}>
                 {language === "es" ? "Día" : "Day"}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={() => setViewMode("week")}
-              style={[styles.toggleBtn, viewMode === "week" && { backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 }]}
-            >
-              <Text style={[styles.toggleText, { color: viewMode === "week" ? "white" : colors.subtext }]}>
-                {language === "es" ? "Sem" : "Wk"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -330,7 +342,7 @@ export default function AppointmentsListScreen() {
               key={`timeline-${viewMode}-${selectedDate}`}
               events={timelineEvents as any}
               format24h={true}
-              numberOfDays={viewMode === "week" ? 3 : 1}
+              numberOfDays={1}
               timelineLeftInset={72}
               rightEdgeSpacing={0}
               theme={{
@@ -342,7 +354,30 @@ export default function AppointmentsListScreen() {
                 line: { left: 72, color: darkMode ? "#374151" : "#E5E7EB" },
                 nowIndicatorColor: colors.primary,
               } as any}
-              onEventPress={(event: any) => router.push(`/appointments/edit?id=${event.id}`)}
+              onEventPress={(event: any) => {
+                const appointment = appointments.find(a => a.id === event.id);
+                if (!appointment) return;
+
+                Alert.alert(
+                  `${appointment.clientName}`,
+                  `${t.appointments.date}: ${appointment.date.split("T")[0]}`,
+                  [
+                    { 
+                      text: t.common.edit, 
+                      onPress: () => router.push(`/appointments/edit?id=${appointment.id}`) 
+                    },
+                    {
+                      text: appointment.paymentStatus === "paid" ? t.clientProfile.markAsUnpaid : t.clientProfile.markAsPaid,
+                      onPress: () => togglePaymentStatus(appointment, () => loadMonth(currentYear, currentMonth, true))
+                    },
+                    {
+                      text: t.common.delete,
+                      onPress: () => deleteAppointmentWithPrompt(appointment.id, () => loadMonth(currentYear, currentMonth, true)),
+                      style: "destructive"
+                    }
+                  ]
+                );
+              }}
               start={7}
               end={23}
               date={timelineDates}
@@ -368,7 +403,7 @@ export default function AppointmentsListScreen() {
 
                   <View style={styles.eventFooter}>
                     <Text style={styles.eventTime}>
-                      {viewMode === "day" ? `$${event.totalPrice} • ` : ""}{event.start.split(" ")[1].substring(0, 5)}
+                      $${event.totalPrice} • {event.start.split(" ")[1].substring(0, 5)}
                     </Text>
                     {event.paymentStatus === "paid" && (
                       <View style={{ marginLeft: 4 }}>

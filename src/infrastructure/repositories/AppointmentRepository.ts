@@ -320,7 +320,9 @@ export class AppointmentRepository {
       };
     });
 
-    const totalAppointments = history.length;
+    const totalAppointments = history.filter(
+      (h) => h.status !== "cancelled",
+    ).length;
     const cancelledAppointments = history.filter(
       (h) => h.status === "cancelled",
     ).length;

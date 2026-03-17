@@ -526,7 +526,7 @@ export default function EditAppointmentScreen() {
           />
         </View>
 
-        <View style={{ marginBottom: 40, marginTop: 10, gap: 12 }}>
+        <View style={{ marginBottom: 40, marginTop: 10 }}>
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => handleSave("single")}
@@ -545,24 +545,6 @@ export default function EditAppointmentScreen() {
           >
             <Text style={{ color: "white", fontWeight: "800", fontSize: 16 }}>
               {isSubmitting && pendingOp === "update" ? t.appointments.saving : t.appointments.saveCmd}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={handleDeletePrompt}
-            disabled={isSubmitting}
-            style={{
-              backgroundColor: darkMode ? "#442222" : "#FFF0F0",
-              padding: 16,
-              borderRadius: 12,
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "#FF4444",
-            }}
-          >
-            <Text style={{ color: "#FF4444", fontWeight: "800", fontSize: 16 }}>
-              {isSubmitting && pendingOp === "delete" ? t.appointments.deleting : t.appointments.deleteRecord}
             </Text>
           </TouchableOpacity>
         </View>

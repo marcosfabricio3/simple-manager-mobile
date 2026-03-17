@@ -51,6 +51,9 @@ export function useAppointmentActions() {
     const newStatus = appointment.paymentStatus === "paid" ? "unpaid" : "paid";
     try {
       await service.updatePaymentStatus(appointment.id, newStatus);
+      LayoutAnimation.configureNext(
+        LayoutAnimation.Presets.easeInEaseOut,
+      );
       if (onRefresh) onRefresh();
     } catch (e) {
       console.error(e);
