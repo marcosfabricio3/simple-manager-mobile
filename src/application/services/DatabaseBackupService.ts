@@ -22,6 +22,7 @@
  *   4. SQLite file is restored to disk.
  */
 
+import { db } from "@/src/infrastructure/database/database";
 import { encryptionService } from "@/src/application/services/EncryptionService";
 import {
   Language,
@@ -30,7 +31,8 @@ import {
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import { Alert } from "react-native";
+import * as Crypto from "expo-crypto";
+import { Alert, Platform, BackHandler } from "react-native";
 
 const DB_NAME = "simple_manager.db";
 const BACKUP_EXTENSION = ".smb";
@@ -59,6 +61,18 @@ function base64ToBuffer(b64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
+const getSubtle = () => {
+  const c = (Crypto as any).subtle;
+  if (c && typeof c.importKey === "function") return c;
+
+  const globalCrypto = (global as any).crypto || (global as any).Crypto;
+  if (globalCrypto?.subtle && typeof globalCrypto.subtle.importKey === "function") {
+    return globalCrypto.subtle;
+  }
+  
+  return null;
+};
+
 /**
  * Derives a 256-bit AES-GCM Key-Encryption-Key from a user passphrase.
  * Uses PBKDF2 with a random salt and 250 000 iterations of SHA-256.
@@ -67,7 +81,10 @@ async function deriveKekFromPassphrase(
   passphrase: string,
   salt: ArrayBuffer,
 ): Promise<CryptoKey> {
-  const passphraseKey = await crypto.subtle.importKey(
+  const subtle = getSubtle();
+  if (!subtle) throw new Error("WebCrypto API not supported in this environment");
+
+  const passphraseKey = await subtle.importKey(
     "raw",
     new TextEncoder().encode(passphrase),
     "PBKDF2",
@@ -75,7 +92,7 @@ async function deriveKekFromPassphrase(
     ["deriveKey"],
   );
 
-  return await crypto.subtle.deriveKey(
+  return await subtle.deriveKey(
     {
       name: "PBKDF2",
       salt,
@@ -96,10 +113,14 @@ async function wrapKey(
   rawKeyBase64: string,
   kek: CryptoKey,
 ): Promise<{ iv: string; ciphertext: string }> {
-  const iv = crypto.getRandomValues(new Uint8Array(12)).buffer;
+  const subtle = getSubtle();
+  if (!subtle) throw new Error("WebCrypto API not supported in this environment");
+
+  const ivBytes = await Crypto.getRandomBytesAsync(12);
+  const iv = ivBytes.buffer as ArrayBuffer;
   const rawKeyBuffer = base64ToBuffer(rawKeyBase64);
 
-  const cipherBuffer = await crypto.subtle.encrypt(
+  const cipherBuffer = await subtle.encrypt(
     { name: "AES-GCM", iv },
     kek,
     rawKeyBuffer,
@@ -119,10 +140,13 @@ async function unwrapKey(
   ciphertextBase64: string,
   kek: CryptoKey,
 ): Promise<string> {
+  const subtle = getSubtle();
+  if (!subtle) throw new Error("WebCrypto API not supported in this environment");
+
   const iv = base64ToBuffer(ivBase64);
   const cipherBuffer = base64ToBuffer(ciphertextBase64);
 
-  const plainBuffer = await crypto.subtle.decrypt(
+  const plainBuffer = await subtle.decrypt(
     { name: "AES-GCM", iv },
     kek,
     cipherBuffer,
@@ -189,15 +213,25 @@ export class DatabaseBackupService {
         return;
       }
 
-      // 2. Read the SQLite file as base64
+      // 2. Checkpoint WAL and Read the SQLite file as base64
+      await db.execAsync("PRAGMA wal_checkpoint(FULL);");
       const dbBase64 = await FileSystem.readAsStringAsync(this.dbPath, {
         // @ts-ignore
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // 3. Derive KEK from passphrase
-      const saltBytes = crypto.getRandomValues(new Uint8Array(32));
-      const salt = saltBytes.buffer;
+      // 3. Ensure SubtleCrypto is available in this environment
+      if (!getSubtle()) {
+        Alert.alert(
+          common.error,
+          "Los respaldos seguros no son compatibles en este entorno (ej. Expo Go). Requiere una versión completa con WebCrypto."
+        );
+        return;
+      }
+
+      // 4. Derive KEK from passphrase
+      const saltBytes = await Crypto.getRandomBytesAsync(32);
+      const salt = saltBytes.buffer as ArrayBuffer;
       const kek = await deriveKekFromPassphrase(passphrase, salt);
 
       // 4. Get and wrap the master encryption key
@@ -288,6 +322,14 @@ export class DatabaseBackupService {
         return;
       }
 
+      if (!getSubtle()) {
+        Alert.alert(
+          common.error,
+          "Restauración no compatible en Expo Go sin WebCrypto nativo."
+        );
+        return;
+      }
+
       // 2. Derive KEK
       const salt = base64ToBuffer(bundle.kdf.salt);
       let kek: CryptoKey;
@@ -312,6 +354,13 @@ export class DatabaseBackupService {
       }
 
       // 4. Restore the SQLite database file
+      // Close the current connection to avoid database corruption
+      try {
+        db.closeSync();
+      } catch (e) {
+        console.warn("[DatabaseBackupService] DB already closed or error:", e);
+      }
+
       // @ts-ignore
       const dbDirectory = `${FileSystem.documentDirectory}SQLite`;
       const dirInfo = await FileSystem.getInfoAsync(dbDirectory);
@@ -326,11 +375,24 @@ export class DatabaseBackupService {
         encoding: FileSystem.EncodingType.Base64,
       });
 
+      // Clear WAL and SHM files to prevent the old journal from applying to the new DB file
+      try {
+        await FileSystem.deleteAsync(`${this.dbPath}-wal`, { idempotent: true });
+        await FileSystem.deleteAsync(`${this.dbPath}-shm`, { idempotent: true });
+      } catch (e) {}
+
       // 5. Restore master key into SecureStore
       await encryptionService.importRawMasterKey(rawKeyBase64);
 
       Alert.alert(backup.importSuccess, backup.importSuccessMsg, [
-        { text: common.understood },
+        { 
+          text: common.understood,
+          onPress: () => {
+            if (Platform.OS === "android") {
+              BackHandler.exitApp();
+            }
+          }
+        },
       ]);
     } catch (error) {
       console.error("[DatabaseBackupService] import failed:", error);
