@@ -7,7 +7,8 @@ import { EmptyState } from "@/src/presentation/components/EmptyState";
 import { useClients } from "@/src/presentation/hooks/useClients";
 import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   Alert,
   FlatList,
@@ -23,7 +24,7 @@ import {
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 
 export default function ClientsScreen() {
-  const { clients, create, remove, update } = useClients();
+  const { clients, create, remove, update, load } = useClients();
   const { darkMode } = useSettingsStore();
   const { t } = useI18n();
   const paddingTop = useSafeTopPadding();
@@ -36,10 +37,17 @@ export default function ClientsScreen() {
   const [notes, setNotes] = useState("");
   const [editing, setEditing] = useState<Client | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterMode, setFilterMode] = useState<"all" | "new" | "old">("all");
   const [selectedClientForProfile, setSelectedClientForProfile] =
     useState<Client | null>(null);
 
   const { addToast } = useToast();
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const handleSubmit = async () => {
     const cleanName = name.trim();
@@ -105,13 +113,18 @@ export default function ClientsScreen() {
   };
 
   const filteredClients = useMemo(() => {
-    let result = searchQuery.trim()
-      ? clients.filter((c) =>
-          c.name.toLowerCase().includes(searchQuery.toLowerCase().trim()),
-        )
-      : clients;
+    let result = clients;
+    
+    if (filterMode === "new") result = result.filter(c => c.isNew);
+    if (filterMode === "old") result = result.filter(c => !c.isNew);
+
+    if (searchQuery.trim()) {
+      result = result.filter((c) =>
+        c.name.toLowerCase().includes(searchQuery.toLowerCase().trim()),
+      );
+    }
     return result.slice().sort((a, b) => a.name.localeCompare(b.name));
-  }, [clients, searchQuery]);
+  }, [clients, searchQuery, filterMode]);
 
   return (
     <KeyboardAvoidingView
@@ -240,6 +253,45 @@ export default function ClientsScreen() {
                 style={[styles.searchInput, { color: colors.text }]}
               />
             </View>
+
+            <View style={styles.filterTabsContainer}>
+              {(["all", "new", "old"] as const).map((mode) => {
+                const isActive = filterMode === mode;
+                let label = "";
+                if (mode === "all") label = t.clients.filterAll;
+                else if (mode === "new") label = t.clients.filterNew;
+                else if (mode === "old") label = t.clients.filterOld;
+
+                return (
+                  <TouchableOpacity
+                    key={mode}
+                    onPress={() => setFilterMode(mode)}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.filterTab,
+                      {
+                        backgroundColor: isActive
+                          ? colors.primary
+                          : colors.card,
+                        borderColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterTabText,
+                        {
+                          color: isActive ? "#fff" : colors.subtext,
+                          fontWeight: isActive ? "700" : "500",
+                        },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </>
         }
         ListEmptyComponent={
@@ -259,9 +311,18 @@ export default function ClientsScreen() {
             activeOpacity={0.7}
           >
             <View style={styles.clientMain}>
-              <Text style={[styles.clientName, { color: colors.text }]}>
-                {item.name}
-              </Text>
+              <View style={styles.nameRow}>
+                <Text style={[styles.clientName, { color: colors.text }]}>
+                  {item.name}
+                </Text>
+                {item.isNew && (
+                  <View style={[styles.newBadge, { backgroundColor: colors.success + "20" }]}>
+                    <Text style={[styles.newBadgeText, { color: colors.success }]}>
+                      {t.clients.newClientBadge}
+                    </Text>
+                  </View>
+                )}
+              </View>
               <View style={styles.infoRow}>
                 <MaterialIcons name="phone" size={14} color={colors.primary} />
                 <Text style={[styles.phoneText, { color: colors.subtext }]}>
@@ -418,10 +479,25 @@ const styles = StyleSheet.create({
   clientMain: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
   clientName: {
     fontSize: 17,
     fontWeight: "700",
-    marginBottom: 4,
+  },
+  newBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  newBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
   },
   infoRow: {
     flexDirection: "row",
@@ -438,5 +514,20 @@ const styles = StyleSheet.create({
   },
   miniBtn: {
     padding: 6,
+  },
+  filterTabsContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 20,
+    paddingHorizontal: 2,
+  },
+  filterTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterTabText: {
+    fontSize: 13,
   },
 });

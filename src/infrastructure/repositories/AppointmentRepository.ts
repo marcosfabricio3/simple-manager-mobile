@@ -1,3 +1,4 @@
+import { encryptionService } from "../../application/services/EncryptionService";
 import { generateId } from "../../application/utils/id";
 import {
     Appointment,
@@ -27,6 +28,7 @@ interface AppointmentJoinedRow {
   recurrence: "none" | "weekly" | "biweekly" | "monthly";
   clientName: string;
   clientPhone?: string;
+  clientIsNew: number;
   servicesJson: string; // From JSON_GROUP_ARRAY
   serviceId?: string;
   serviceName?: string;
@@ -92,6 +94,7 @@ export class AppointmentRepository {
             a.*,
             c.name as clientName,
             c.phone as clientPhone,
+            c.isNew as clientIsNew,
             IFNULL(
                 (
                     SELECT json_group_array(
@@ -114,29 +117,37 @@ export class AppointmentRepository {
         ORDER BY a.date ASC
     `);
 
-    return rows.map((r): AppointmentWithDetails => {
-      const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
-      const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
+    return Promise.all(
+      rows.map(async (r): Promise<AppointmentWithDetails> => {
+        const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
+        const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
-      return {
-        id: r.id,
-        clientId: r.clientId,
-        date: r.date,
-        durationMinutes: r.durationMinutes,
-        status: r.status,
-        paymentStatus: r.paymentStatus || "unpaid",
-        createdAt: r.createdAt,
-        updatedAt: r.updatedAt,
-        isDeleted: Boolean(r.isDeleted),
-        notes: r.notes,
-        clientName: r.clientName,
-        clientPhone: r.clientPhone,
-        seriesId: r.seriesId,
-        recurrence: r.recurrence,
-        services,
-        totalPrice,
-      };
-    });
+        const decryptedClientName = await encryptionService.decrypt(r.clientName);
+        const decryptedClientPhone = r.clientPhone
+          ? await encryptionService.decrypt(r.clientPhone)
+          : undefined;
+
+        return {
+          id: r.id,
+          clientId: r.clientId,
+          date: r.date,
+          durationMinutes: r.durationMinutes,
+          status: r.status,
+          paymentStatus: r.paymentStatus || "unpaid",
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          isDeleted: Boolean(r.isDeleted),
+          notes: r.notes,
+          clientName: decryptedClientName,
+          clientPhone: decryptedClientPhone,
+          clientIsNew: Boolean(r.clientIsNew),
+          seriesId: r.seriesId,
+          recurrence: r.recurrence,
+          services,
+          totalPrice,
+        };
+      }),
+    );
   }
 
   async softDelete(id: string) {
@@ -155,6 +166,7 @@ export class AppointmentRepository {
             a.*,
             c.name as clientName,
             c.phone as clientPhone,
+            c.isNew as clientIsNew,
             IFNULL(
                 (
                     SELECT json_group_array(
@@ -180,29 +192,37 @@ export class AppointmentRepository {
       [startDateIso, endDateIso],
     );
 
-    return rows.map((r): AppointmentWithDetails => {
-      const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
-      const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
+    return Promise.all(
+      rows.map(async (r): Promise<AppointmentWithDetails> => {
+        const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
+        const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
-      return {
-        id: r.id,
-        clientId: r.clientId,
-        date: r.date,
-        durationMinutes: r.durationMinutes,
-        status: r.status,
-        paymentStatus: r.paymentStatus || "unpaid",
-        createdAt: r.createdAt,
-        updatedAt: r.updatedAt,
-        isDeleted: Boolean(r.isDeleted),
-        notes: r.notes,
-        clientName: r.clientName,
-        clientPhone: r.clientPhone,
-        seriesId: r.seriesId,
-        recurrence: r.recurrence,
-        services,
-        totalPrice,
-      };
-    });
+        const decryptedClientName = await encryptionService.decrypt(r.clientName);
+        const decryptedClientPhone = r.clientPhone
+          ? await encryptionService.decrypt(r.clientPhone)
+          : undefined;
+
+        return {
+          id: r.id,
+          clientId: r.clientId,
+          date: r.date,
+          durationMinutes: r.durationMinutes,
+          status: r.status,
+          paymentStatus: r.paymentStatus || "unpaid",
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          isDeleted: Boolean(r.isDeleted),
+          notes: r.notes,
+          clientName: decryptedClientName,
+          clientPhone: decryptedClientPhone,
+          clientIsNew: Boolean(r.clientIsNew),
+          seriesId: r.seriesId,
+          recurrence: r.recurrence,
+          services,
+          totalPrice,
+        };
+      }),
+    );
   }
 
   async findToday(): Promise<AppointmentWithDetails[]> {
@@ -212,6 +232,7 @@ export class AppointmentRepository {
             a.*,
             c.name as clientName,
             c.phone as clientPhone,
+            c.isNew as clientIsNew,
             IFNULL(
                 (
                     SELECT json_group_array(
@@ -234,29 +255,37 @@ export class AppointmentRepository {
         ORDER BY a.date ASC
     `);
 
-    return rows.map((r): AppointmentWithDetails => {
-      const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
-      const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
+    return Promise.all(
+      rows.map(async (r): Promise<AppointmentWithDetails> => {
+        const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
+        const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
-      return {
-        id: r.id,
-        clientId: r.clientId,
-        date: r.date,
-        durationMinutes: r.durationMinutes,
-        status: r.status,
-        paymentStatus: r.paymentStatus || "unpaid",
-        createdAt: r.createdAt,
-        updatedAt: r.updatedAt,
-        isDeleted: Boolean(r.isDeleted),
-        notes: r.notes,
-        clientName: r.clientName,
-        clientPhone: r.clientPhone,
-        seriesId: r.seriesId,
-        recurrence: r.recurrence,
-        services,
-        totalPrice,
-      };
-    });
+        const decryptedClientName = await encryptionService.decrypt(r.clientName);
+        const decryptedClientPhone = r.clientPhone
+          ? await encryptionService.decrypt(r.clientPhone)
+          : undefined;
+
+        return {
+          id: r.id,
+          clientId: r.clientId,
+          date: r.date,
+          durationMinutes: r.durationMinutes,
+          status: r.status,
+          paymentStatus: r.paymentStatus || "unpaid",
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          isDeleted: Boolean(r.isDeleted),
+          notes: r.notes,
+          clientName: decryptedClientName,
+          clientPhone: decryptedClientPhone,
+          clientIsNew: Boolean(r.clientIsNew),
+          seriesId: r.seriesId,
+          recurrence: r.recurrence,
+          services,
+          totalPrice,
+        };
+      }),
+    );
   }
 
   async calculateRevenueToday(): Promise<number> {
@@ -272,6 +301,7 @@ export class AppointmentRepository {
             a.*,
             c.name as clientName,
             c.phone as clientPhone,
+            c.isNew as clientIsNew,
             IFNULL(
                 (
                     SELECT json_group_array(
@@ -296,29 +326,37 @@ export class AppointmentRepository {
       [clientId],
     );
 
-    const history = rows.map((r): AppointmentWithDetails => {
-      const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
-      const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
+    const history = await Promise.all(
+      rows.map(async (r): Promise<AppointmentWithDetails> => {
+        const services: ServiceJsonRow[] = JSON.parse(r.servicesJson);
+        const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
 
-      return {
-        id: r.id,
-        clientId: r.clientId,
-        date: r.date,
-        durationMinutes: r.durationMinutes,
-        status: r.status,
-        paymentStatus: r.paymentStatus || "unpaid",
-        createdAt: r.createdAt,
-        updatedAt: r.updatedAt,
-        isDeleted: Boolean(r.isDeleted),
-        notes: r.notes,
-        clientName: r.clientName,
-        clientPhone: r.clientPhone,
-        seriesId: r.seriesId,
-        recurrence: r.recurrence,
-        services,
-        totalPrice,
-      };
-    });
+        const decryptedClientName = await encryptionService.decrypt(r.clientName);
+        const decryptedClientPhone = r.clientPhone
+          ? await encryptionService.decrypt(r.clientPhone)
+          : undefined;
+
+        return {
+          id: r.id,
+          clientId: r.clientId,
+          date: r.date,
+          durationMinutes: r.durationMinutes,
+          status: r.status,
+          paymentStatus: r.paymentStatus || "unpaid",
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+          isDeleted: Boolean(r.isDeleted),
+          notes: r.notes,
+          clientName: decryptedClientName,
+          clientPhone: decryptedClientPhone,
+          clientIsNew: Boolean(r.clientIsNew),
+          seriesId: r.seriesId,
+          recurrence: r.recurrence,
+          services,
+          totalPrice,
+        };
+      }),
+    );
 
     const totalAppointments = history.filter(
       (h) => h.status !== "cancelled",
@@ -373,6 +411,7 @@ export class AppointmentRepository {
         a.*,
         c.name as clientName,
         c.phone as clientPhone,
+        c.isNew as clientIsNew,
         s.id as serviceId,
         s.name as serviceName,
         COALESCE(pivot.customPrice, s.defaultPrice) as serviceDefaultPrice,
@@ -403,6 +442,7 @@ export class AppointmentRepository {
           isDeleted: row.isDeleted === 1,
           clientName: row.clientName,
           clientPhone: row.clientPhone,
+          clientIsNew: Boolean(row.clientIsNew),
           seriesId: row.seriesId,
           recurrence: row.recurrence,
           services: [],
@@ -421,7 +461,15 @@ export class AppointmentRepository {
       }
     }
 
-    return Array.from(grouped.values())[0];
+    const firstEntry = Array.from(grouped.values())[0];
+    if (firstEntry) {
+      firstEntry.clientName = await encryptionService.decrypt(firstEntry.clientName);
+      if (firstEntry.clientPhone) {
+        firstEntry.clientPhone = await encryptionService.decrypt(firstEntry.clientPhone);
+      }
+    }
+
+    return firstEntry;
   }
 
   async updatePaymentStatus(id: string, paymentStatus: "paid" | "unpaid") {

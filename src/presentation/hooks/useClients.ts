@@ -63,6 +63,7 @@ export function useClients() {
           createdAt: now,
           updatedAt: now,
           isDeleted: false,
+          isNew: true,
         };
         await service.create(newClient);
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);

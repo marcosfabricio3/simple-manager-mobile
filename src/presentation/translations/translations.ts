@@ -107,6 +107,10 @@ export const translations = {
       emptyTitle: "Agenda vacía",
       emptyDesc: "No se encontraron clientes que coincidan con la búsqueda.",
       noPhone: "Sin teléfono",
+      newClientBadge: "Nuevo",
+      filterAll: "Todos",
+      filterNew: "Nuevos",
+      filterOld: "Antiguos",
     },
     settings: {
       title: "Ajustes",
@@ -417,6 +421,10 @@ export const translations = {
       emptyTitle: "Empty Directory",
       emptyDesc: "No clients found matching your search.",
       noPhone: "No phone",
+      newClientBadge: "New",
+      filterAll: "All",
+      filterNew: "New",
+      filterOld: "Old",
     },
     settings: {
       title: "Settings",

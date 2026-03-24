@@ -21,6 +21,7 @@ export interface Appointment {
 export interface AppointmentWithDetails extends Appointment {
   clientName: string;
   clientPhone?: string;
+  clientIsNew: boolean;
   services: {
     id: string; // Service ID
     name: string;

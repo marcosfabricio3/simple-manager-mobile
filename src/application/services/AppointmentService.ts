@@ -99,6 +99,7 @@ export class AppointmentService {
       createdAt: now,
       updatedAt: now,
       isDeleted: false,
+      isNew: true,
     };
 
     await this.clientRepo.create(client);
@@ -201,8 +202,33 @@ export class AppointmentService {
     await this.notificationService.cancelNotificationAsync(id);
   }
 
+  private async evaluateClientNewStatus(clientId: string) {
+    const client = await this.clientRepo.findById(clientId);
+    if (!client || !client.isNew) return; // If already old, nothing to do
+
+    const metrics = await this.appointmentRepo.getClientMetrics(clientId);
+    
+    const now = new Date().toISOString();
+    // Check if there is at least one paid appointment that is either completed or passed
+    const hasCompletedAndPaid = metrics.history.some(
+      (appt) => 
+        appt.status !== "cancelled" && 
+        appt.paymentStatus === "paid" &&
+        (appt.status === "completed" || appt.date < now)
+    );
+
+    if (hasCompletedAndPaid) {
+      client.isNew = false;
+      await this.clientRepo.update(client);
+    }
+  }
+
   async updatePaymentStatus(id: string, status: "paid" | "unpaid") {
     await this.appointmentRepo.updatePaymentStatus(id, status);
+    const appt = await this.appointmentRepo.findById(id);
+    if (appt) {
+      await this.evaluateClientNewStatus(appt.clientId);
+    }
   }
 
   async updateStatus(
@@ -210,6 +236,10 @@ export class AppointmentService {
     status: "pending" | "completed" | "cancelled",
   ) {
     await this.appointmentRepo.updateStatus(id, status);
+    const appt = await this.appointmentRepo.findById(id);
+    if (appt) {
+      await this.evaluateClientNewStatus(appt.clientId);
+    }
   }
 
   async update(

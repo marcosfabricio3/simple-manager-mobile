@@ -212,9 +212,18 @@ export function ClientProfileModal({
             { backgroundColor: colors.card, borderBottomColor: colors.border },
           ]}
         >
-          <Text style={[styles.title, { color: colors.text }]}>
-            {client.name}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {client.name}
+            </Text>
+            {client.isNew && (
+              <View style={[styles.newBadge, { backgroundColor: colors.success + "20" }]}>
+                <Text style={[styles.newBadgeText, { color: colors.success }]}>
+                  {t.clients.newClientBadge}
+                </Text>
+              </View>
+            )}
+          </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             {onEditClient && (
               <TouchableOpacity
@@ -649,7 +658,22 @@ const styles = StyleSheet.create({
     padding: 20,
     borderBottomWidth: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   title: { fontSize: 22, fontWeight: "bold" },
+  newBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  newBadgeText: {
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
   closeBtn: { padding: 4 },
   editBtn: {
     flexDirection: "row",

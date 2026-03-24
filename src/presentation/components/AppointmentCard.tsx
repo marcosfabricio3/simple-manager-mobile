@@ -81,9 +81,18 @@ export function AppointmentCard({
       >
         <View style={styles.contentRow}>
           <View style={styles.mainInfo}>
-            <Text style={[styles.clientName, { color: colors.text }]}>
-              {appointment.clientName}
-            </Text>
+            <View style={styles.nameRow}>
+              <Text style={[styles.clientName, { color: colors.text }]}>
+                {appointment.clientName}
+              </Text>
+              {appointment.clientIsNew && (
+                <View style={[styles.newBadge, { backgroundColor: colors.success + "20" }]}>
+                  <Text style={[styles.newBadgeText, { color: colors.success }]}>
+                    {t.clients.newClientBadge}
+                  </Text>
+                </View>
+              )}
+            </View>
             <View style={styles.timeRow}>
               <MaterialIcons name="schedule" size={14} color={colors.subtext} />
               <Text style={[styles.timeText, { color: colors.subtext }]}>
@@ -150,12 +159,21 @@ export function AppointmentCard({
           <Text style={[styles.clientLabel, { color: colors.subtext }]}>
             {t.appointments.client}
           </Text>
-          <Text style={[styles.clientNameLarge, { color: colors.text }]}>
-            {appointment.clientName}
-            {appointment.recurrence !== "none" && (
-              <MaterialIcons name="repeat" size={16} color={colors.primary} style={{ marginLeft: 8 }} />
+          <View style={styles.nameRow}>
+            <Text style={[styles.clientNameLarge, { color: colors.text }]}>
+              {appointment.clientName}
+              {appointment.recurrence !== "none" && (
+                <MaterialIcons name="repeat" size={16} color={colors.primary} style={{ marginLeft: 8 }} />
+              )}
+            </Text>
+            {appointment.clientIsNew && (
+              <View style={[styles.newBadge, { backgroundColor: colors.success + "20" }]}>
+                <Text style={[styles.newBadgeText, { color: colors.success }]}>
+                  {t.clients.newClientBadge}
+                </Text>
+              </View>
             )}
-          </Text>
+          </View>
         </View>
         <StatusBadge status={appointment.status} />
       </View>
@@ -269,10 +287,25 @@ const styles = StyleSheet.create({
   mainInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
   clientName: {
     fontSize: 16,
     fontWeight: "700",
-    marginBottom: 4,
+  },
+  newBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  newBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
   },
   timeRow: {
     flexDirection: "row",

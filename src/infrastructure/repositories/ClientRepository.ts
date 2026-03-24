@@ -19,8 +19,8 @@ export class ClientRepository {
     await db.runAsync(
       `
             INSERT INTO clients (
-            id, name, phone, email, notes, createdAt, updatedAt, isDeleted)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, name, phone, email, notes, createdAt, updatedAt, isDeleted, isNew)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         encryptedClient.id,
         encryptedClient.name,
@@ -30,6 +30,7 @@ export class ClientRepository {
         encryptedClient.createdAt,
         encryptedClient.updatedAt,
         encryptedClient.isDeleted ? 1 : 0,
+        encryptedClient.isNew ? 1 : 0,
       ],
     );
   }
@@ -47,6 +48,7 @@ export class ClientRepository {
         email: r.email ? await encryptionService.decrypt(r.email) : null,
         notes: r.notes ? await encryptionService.decrypt(r.notes) : null,
         isDeleted: Boolean(r.isDeleted),
+        isNew: Boolean(r.isNew),
       })),
     );
   }
@@ -66,6 +68,7 @@ export class ClientRepository {
       email: row.email ? await encryptionService.decrypt(row.email) : null,
       notes: row.notes ? await encryptionService.decrypt(row.notes) : null,
       isDeleted: Boolean(row.isDeleted),
+      isNew: Boolean(row.isNew),
     };
   }
 
@@ -84,12 +87,13 @@ export class ClientRepository {
       : null;
 
     await db.runAsync(
-      `UPDATE clients SET name = ?, phone = ?, notes = ?, updatedAt = ? WHERE id = ?`,
+      `UPDATE clients SET name = ?, phone = ?, notes = ?, updatedAt = ?, isNew = ? WHERE id = ?`,
       [
         encryptedName,
         encryptedPhone,
         encryptedNotes,
         client.updatedAt,
+        client.isNew ? 1 : 0,
         client.id,
       ],
     );

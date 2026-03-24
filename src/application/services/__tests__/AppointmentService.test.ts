@@ -33,7 +33,8 @@ describe("AppointmentService (Application Layer)", () => {
       "1234567890",
       validIsoDate,
       60,
-      ["service-id-1", "service-id-2"],
+      [{ serviceId: "service-id-1", price: 10 }, { serviceId: "service-id-2", price: 10 }],
+      "none",
       "First visit",
     );
 
@@ -52,14 +53,14 @@ describe("AppointmentService (Application Layer)", () => {
     expect(createdAppt.durationMinutes).toBe(60);
     expect(createdAppt.status).toBe("pending");
     expect(createdAppt.paymentStatus).toBe("unpaid");
-    expect(serviceIds).toEqual(["service-id-1", "service-id-2"]);
+    expect(serviceIds).toEqual([{ serviceId: "service-id-1", price: 10 }, { serviceId: "service-id-2", price: 10 }]);
     expect(createdAppt.notes).toBe("First visit");
   });
 
   it("should throw an error if client name is empty", async () => {
     const validIsoDate = new Date().toISOString();
     await expect(
-      service.createWithClient("   ", "1234", validIsoDate, 30, [], ""),
+      service.createWithClient("   ", "1234", validIsoDate, 30, [], "none", ""),
     ).rejects.toThrow("Nombre del cliente es requerido.");
 
     expect(mockClientRepoCreate).not.toHaveBeenCalled();
@@ -68,7 +69,7 @@ describe("AppointmentService (Application Layer)", () => {
 
   it("should throw an error if the date format is invalid", async () => {
     await expect(
-      service.createWithClient("John", "", "", 30, ["s1"], ""),
+      service.createWithClient("John", "", "", 30, [{ serviceId: "s1", price: null }], "none", ""),
     ).rejects.toThrow("Fecha del turno es requerida.");
 
     expect(mockClientRepoCreate).not.toHaveBeenCalled();
@@ -77,7 +78,7 @@ describe("AppointmentService (Application Layer)", () => {
   it("should throw an error if no services are selected", async () => {
     const validDate = new Date().toISOString();
     await expect(
-      service.createWithClient("John", "", validDate, 30, [], ""),
+      service.createWithClient("John", "", validDate, 30, [], "none", ""),
     ).rejects.toThrow("Debes seleccionar al menos un servicio.");
 
     expect(mockClientRepoCreate).not.toHaveBeenCalled();
@@ -99,15 +100,38 @@ describe("AppointmentService (Application Layer)", () => {
     expect(rev).toBe(1500);
   });
 
-  it("should update payment status by delegating to repository", async () => {
+  it("should update payment status and evaluate client new status", async () => {
     const mockApptUpdatePayment = jest
       .spyOn(AppointmentRepository.prototype, "updatePaymentStatus")
       .mockResolvedValue(undefined);
+    
+    // Mock for evaluateClientNewStatus internally
+    const mockFindById = jest.spyOn(AppointmentRepository.prototype, "findById").mockResolvedValue({
+      id: "appt-id-123", clientId: "client-id", status: "completed", paymentStatus: "unpaid"
+    } as any);
+
+    const mockGetClientMetrics = jest.spyOn(AppointmentRepository.prototype, "getClientMetrics").mockResolvedValue({
+      history: [{ status: "completed", paymentStatus: "paid" } as any],
+      totalAppointments: 1, cancelledAppointments: 0, totalDebt: 0, totalSpent: 100, nextPending: null
+    });
+
+    const mockClientFindById = jest.spyOn(ClientRepository.prototype, "findById").mockResolvedValue({
+      id: "client-id", isNew: true
+    } as any);
+
+    const mockClientUpdate = jest.spyOn(ClientRepository.prototype, "update").mockResolvedValue(undefined);
 
     await service.updatePaymentStatus("appt-id-123", "paid");
 
     expect(mockApptUpdatePayment).toHaveBeenCalledTimes(1);
     expect(mockApptUpdatePayment).toHaveBeenCalledWith("appt-id-123", "paid");
+    expect(mockClientUpdate).toHaveBeenCalledWith({ id: "client-id", isNew: false });
+
+    // Clean up
+    mockFindById.mockRestore();
+    mockGetClientMetrics.mockRestore();
+    mockClientFindById.mockRestore();
+    mockClientUpdate.mockRestore();
   });
 
   it("should get client metrics successfully from repository", async () => {

@@ -7,4 +7,5 @@ export interface Client {
   createdAt: string;
   updatedAt: string;
   isDeleted: boolean;
+  isNew: boolean;
 }

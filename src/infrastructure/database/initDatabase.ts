@@ -23,7 +23,8 @@ export function initDatabase() {
             notes TEXT,
             createdAt TEXT NOT NULL,
             updatedAt TEXT NOT NULL,
-            isDeleted INTEGER NOT NULL
+            isDeleted INTEGER NOT NULL,
+            isNew INTEGER NOT NULL DEFAULT 1
         );
 
         CREATE TABLE IF NOT EXISTS services (
@@ -84,4 +85,28 @@ export function initDatabase() {
       `ALTER TABLE appointments ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'none';`,
     );
   } catch (e) {}
+
+  try {
+    db.execSync(
+      `ALTER TABLE clients ADD COLUMN isNew INTEGER NOT NULL DEFAULT 1;`,
+    );
+  } catch (e) {}
+
+  // Post-migration: Retroactively update existing clients to `isNew: 0`
+  // if they have at least one successfully paid and completed appointment.
+  try {
+    db.execSync(`
+      UPDATE clients 
+      SET isNew = 0 
+      WHERE id IN (
+        SELECT clientId 
+        FROM appointments 
+        WHERE status != 'cancelled' 
+          AND paymentStatus = 'paid' 
+          AND (status = 'completed' OR date < datetime('now'))
+      );
+    `);
+  } catch(e) {
+    console.error("Failed to retroactively update new clients:", e);
+  }
 }
