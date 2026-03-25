@@ -1,4 +1,4 @@
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import {
   AppointmentStatus,
@@ -6,7 +6,7 @@ import {
 } from "@/src/domain/entities/Appointment";
 import { useAppointmentActions } from "@/src/presentation/hooks/useAppointmentActions";
 import { useI18n } from "@/src/presentation/translations/useI18n";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { PaymentMethodModal } from "./PaymentMethodModal";
 import React, { useState } from "react";
@@ -66,7 +66,7 @@ export function AppointmentCard({
     }
 
     return (
-      <View style={[styles.badge, { backgroundColor: current.color + "15" }]}>
+      <View style={[styles.badge, { backgroundColor: current.color + "20" }]}>
         <Text style={[styles.badgeText, { color: current.color }]}>
           {current.label}
         </Text>
@@ -97,7 +97,7 @@ export function AppointmentCard({
               )}
             </View>
             <View style={styles.timeRow}>
-              <MaterialIcons name="schedule" size={14} color={colors.subtext} />
+              <Feather name="clock" size={12} color={colors.subtext} />
               <Text style={[styles.timeText, { color: colors.subtext }]}>
                 {startTime} - {endTime}
               </Text>
@@ -121,7 +121,7 @@ export function AppointmentCard({
               onPress={() => onEdit?.(appointment.id)}
               style={styles.iconBtn}
             >
-              <MaterialIcons name="edit" size={20} color={colors.primary} />
+              <Feather name="edit-2" size={18} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
@@ -133,9 +133,9 @@ export function AppointmentCard({
               }}
               style={styles.iconBtn}
             >
-              <MaterialIcons 
-                name={appointment.paymentStatus === "paid" ? "check-circle" : "payments"} 
-                size={20} 
+              <Feather 
+                name={appointment.paymentStatus === "paid" ? "check-circle" : "dollar-sign"} 
+                size={18} 
                 color={appointment.paymentStatus === "paid" ? colors.success : colors.subtext} 
               />
             </TouchableOpacity>
@@ -147,7 +147,7 @@ export function AppointmentCard({
               }
               style={styles.iconBtn}
             >
-              <MaterialIcons name="close" size={20} color={colors.danger} />
+              <Feather name="x" size={18} color={colors.danger} />
             </TouchableOpacity>
           </View>
         </View>
@@ -160,7 +160,7 @@ export function AppointmentCard({
       style={[
         styles.card,
         { backgroundColor: colors.card, borderColor: colors.border },
-        isPast && { opacity: 0.5, grayscale: 1 } as any,
+        isPast && { opacity: 0.6 } as any,
       ]}
     >
       <View style={styles.header}>
@@ -172,7 +172,7 @@ export function AppointmentCard({
             <Text style={[styles.clientNameLarge, { color: colors.text }]}>
               {appointment.clientName}
               {appointment.recurrence !== "none" && (
-                <MaterialIcons name="repeat" size={16} color={colors.primary} style={{ marginLeft: 8 }} />
+                <Feather name="repeat" size={14} color={colors.primary} style={{ marginLeft: Spacing.s }} />
               )}
             </Text>
             {appointment.clientIsNew && (
@@ -189,13 +189,13 @@ export function AppointmentCard({
 
       <View style={styles.details}>
         <View style={styles.detailRow}>
-          <MaterialIcons name="event" size={16} color={colors.primary} />
+          <Feather name="calendar" size={14} color={colors.primary} />
           <Text style={[styles.detailText, { color: colors.text }]}>
-            {dateObj.toLocaleDateString(language === "es" ? "es-AR" : "en-US")}
+            {dateObj.toLocaleDateString(timeLocale)}
           </Text>
         </View>
         <View style={styles.detailRow}>
-          <MaterialIcons name="schedule" size={16} color={colors.primary} />
+          <Feather name="clock" size={14} color={colors.primary} />
           <Text style={[styles.detailText, { color: colors.text }]}>
             {startTime} - {endTime}
           </Text>
@@ -227,8 +227,8 @@ export function AppointmentCard({
             styles.paymentTag, 
             { backgroundColor: appointment.paymentStatus === "paid" ? colors.success + "15" : colors.border + "40" }
           ]}>
-            <MaterialIcons 
-              name={appointment.paymentStatus === "paid" ? "check-circle" : "error-outline"} 
+            <Feather 
+              name={appointment.paymentStatus === "paid" ? "check-circle" : "alert-circle"} 
               size={12} 
               color={appointment.paymentStatus === "paid" ? colors.success : colors.subtext} 
             />
@@ -248,7 +248,7 @@ export function AppointmentCard({
             onPress={() => onEdit?.(appointment.id)}
             style={styles.actionBtn}
           >
-            <MaterialIcons name="edit" size={20} color={colors.primary} />
+            <Feather name="edit-2" size={18} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => {
@@ -260,9 +260,9 @@ export function AppointmentCard({
             }}
             style={styles.actionBtn}
           >
-            <MaterialIcons 
-              name={appointment.paymentStatus === "paid" ? "money-off" : "payments"} 
-              size={22} 
+            <Feather 
+              name={appointment.paymentStatus === "paid" ? "rotate-ccw" : "dollar-sign"} 
+              size={20} 
               color={appointment.paymentStatus === "paid" ? colors.danger : colors.success} 
             />
           </TouchableOpacity>
@@ -274,9 +274,9 @@ export function AppointmentCard({
             }
             style={styles.actionBtn}
           >
-            <MaterialIcons
-              name="delete-outline"
-              size={22}
+            <Feather
+              name="trash-2"
+              size={20}
               color={colors.danger}
             />
           </TouchableOpacity>
@@ -296,10 +296,10 @@ export function AppointmentCard({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12, // Guidelines: 12px
-    padding: 16, // Guidelines: 16px
+    borderRadius: Spacing.s + 4, // 12px
+    padding: Spacing.m,
     borderWidth: 1,
-    marginBottom: 16,
+    marginBottom: Spacing.m,
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -316,8 +316,8 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
+    gap: Spacing.s,
+    marginBottom: Spacing.xs,
   },
   clientName: {
     fontSize: 16,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 8,
+    marginBottom: Spacing.s,
   },
   timeText: {
     fontSize: 13,
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tag: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.s,
     paddingVertical: 3,
     borderRadius: 6,
   },
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   },
   actionColumn: {
     justifyContent: "space-between",
-    paddingLeft: 12,
+    paddingLeft: Spacing.m,
   },
   iconBtn: {
     padding: 6,
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
+    marginBottom: Spacing.m,
   },
   clientLabel: {
     fontSize: 11,
@@ -384,16 +384,16 @@ const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: Spacing.s,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
   },
   details: {
     flexDirection: "row",
-    gap: 20,
-    marginBottom: 16,
+    gap: Spacing.l,
+    marginBottom: Spacing.m,
   },
   detailRow: {
     flexDirection: "row",
@@ -405,8 +405,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   serviceList: {
-    marginBottom: 16,
-    gap: 8,
+    marginBottom: Spacing.m,
+    gap: Spacing.s,
   },
   serviceItem: {
     borderLeftWidth: 3,
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 12,
+    paddingTop: Spacing.s + 4,
     borderTopWidth: 1,
   },
   totalLabel: {
@@ -435,13 +435,13 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.s,
   },
   paymentTag: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: Spacing.s,
     paddingVertical: 2,
     borderRadius: 6,
   },
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
   footerActions: {
     flexDirection: "row",
-    gap: 16,
+    gap: Spacing.m,
   },
   actionBtn: {
     padding: 4,

@@ -23,13 +23,28 @@ initDatabase();
 // Setup Notification Handler
 new ExpoNotificationService();
 
+import * as SplashScreen from "expo-splash-screen";
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
   const { darkMode } = useSettingsStore();
   const colors = Colors[darkMode ? "dark" : "light"];
 
+  useEffect(() => {
+    // Hidden delay to simulate loading or wait for other resources
+    const prepare = async () => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } finally {
+        await SplashScreen.hideAsync();
+      }
+    };
+    prepare();
+  }, []);
+
   // Sync the Android system navigation bar color with the app theme.
-  // This prevents the white/black bar at the bottom from clashing
-  // with the app's design in both light and dark modes.
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(colors.card);
   }, [colors.card]);

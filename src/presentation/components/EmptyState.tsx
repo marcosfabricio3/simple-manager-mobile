@@ -1,11 +1,11 @@
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface EmptyStateProps {
-  iconName: keyof typeof MaterialIcons.glyphMap;
+  iconName: keyof typeof Feather.glyphMap;
   title: string;
   description: string;
 }
@@ -20,7 +20,7 @@ export function EmptyState({ iconName, title, description }: EmptyStateProps) {
       <View
         style={[styles.iconBox, { backgroundColor: colors.primary + "08" }]}
       >
-        <MaterialIcons
+        <Feather
           name={iconName}
           size={40}
           color={colors.primary + "40"}
@@ -36,10 +36,10 @@ export function EmptyState({ iconName, title, description }: EmptyStateProps) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 32,
+    padding: Spacing.xl,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
+    marginTop: Spacing.l,
   },
   iconBox: {
     width: 80,
@@ -47,19 +47,19 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: Spacing.l,
   },
   title: {
     fontSize: 18,
     fontWeight: "800",
-    marginBottom: 8,
+    marginBottom: Spacing.s,
     textAlign: "center",
   },
   description: {
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,
-    paddingHorizontal: 30,
+    paddingHorizontal: Spacing.xl,
     fontWeight: "500",
   },
 });

@@ -1,5 +1,5 @@
 import { ColorValue, KeyboardAvoidingView, ScrollView, StyleSheet, Text, TouchableOpacity, View, RefreshControl, StatusBar, Platform, FlatList } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useCallback, useState, useEffect } from "react";
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
@@ -7,7 +7,7 @@ import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { useI18n } from "@/src/presentation/translations/useI18n";
 import { useDashboard } from "@/src/presentation/hooks/useDashboard";
 import { useFocusEffect } from "@react-navigation/native";
-import { Colors } from "@/constants/theme";
+import { Colors, Spacing } from "@/constants/theme";
 import { AppointmentCard } from "@/src/presentation/components/AppointmentCard";
 import { AppointmentRepository } from "@/src/infrastructure/repositories/AppointmentRepository";
 import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
@@ -120,7 +120,7 @@ export default function DashboardScreen() {
   }: {
     title: string;
     value: string | number;
-    icon: keyof typeof MaterialIcons.glyphMap;
+    icon: keyof typeof Feather.glyphMap;
     color: string;
     index: number;
     isActive?: boolean;
@@ -148,7 +148,7 @@ export default function DashboardScreen() {
         ]}
       >
         <View style={[styles.iconBox, { backgroundColor: color + "15" }]}>
-          <MaterialIcons name={icon} size={18} color={color} />
+          <Feather name={icon} size={16} color={color} />
         </View>
         <View style={{ flex: 1 }}>
           <Text
@@ -176,7 +176,7 @@ export default function DashboardScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
+      <StatusBar barStyle={theme === "dark" ? "light-content" : "dark-content"} />
 
       <FlatList
         data={displayAppointments}
@@ -215,7 +215,7 @@ export default function DashboardScreen() {
                   index={0}
                   title={t.dashboard.totalToday}
                   value={stats.total}
-                  icon="event-note"
+                  icon="calendar"
                   color={colors.primary}
                   isActive={false} // Jumps back to today
                   onPress={() => {
@@ -227,7 +227,7 @@ export default function DashboardScreen() {
                   index={1}
                   title={t.dashboard.pending}
                   value={stats.pending}
-                  icon="schedule"
+                  icon="clock"
                   color={colors.warning}
                   isActive={activeFilter === "pending"}
                   onPress={() => setActiveFilter(activeFilter === "pending" ? "none" : "pending")}
@@ -238,7 +238,7 @@ export default function DashboardScreen() {
                   index={2}
                   title={t.dashboard.cancelled}
                   value={stats.cancelled}
-                  icon="event-busy"
+                  icon="slash"
                   color={colors.danger}
                   isActive={activeFilter === "cancelled"}
                   onPress={() => setActiveFilter(activeFilter === "cancelled" ? "none" : "cancelled")}
@@ -247,7 +247,7 @@ export default function DashboardScreen() {
                   index={3}
                   title={stats.nextClient !== t.common.none ? stats.nextClient : t.dashboard.next}
                   value={t.dashboard.next}
-                  icon="person"
+                  icon="user"
                   color={colors.secondary}
                   isActive={activeFilter === "next"}
                   onPress={() => setActiveFilter(activeFilter === "next" ? "none" : "next")}
@@ -258,13 +258,13 @@ export default function DashboardScreen() {
             <View style={styles.sectionHeader}>
               <View style={styles.dateSelector}>
                 <TouchableOpacity onPress={() => changeDay(-1)} style={styles.navBtn}>
-                  <MaterialIcons name="chevron-left" size={22} color={colors.text} />
+                  <Feather name="chevron-left" size={20} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
                   {t.dashboard.appointmentsFor} {displayDateLabel}
                 </Text>
                 <TouchableOpacity onPress={() => changeDay(1)} style={styles.navBtn}>
-                  <MaterialIcons name="chevron-right" size={22} color={colors.text} />
+                  <Feather name="chevron-right" size={20} color={colors.text} />
                 </TouchableOpacity>
               </View>
               <TouchableOpacity 
@@ -288,7 +288,7 @@ export default function DashboardScreen() {
         }
         ListEmptyComponent={
           <EmptyState
-            iconName="calendar-today"
+            iconName="calendar"
             title={t.dashboard.noActivity}
             description={t.dashboard.empty}
           />
@@ -310,12 +310,12 @@ export default function DashboardScreen() {
           styles.headerAddBtnFixed, 
           { 
             backgroundColor: colors.primary,
-            top: paddingTop + 12,
+            top: paddingTop + Spacing.s,
           }
         ]}
         onPress={() => router.push("/appointments/create" as any)}
       >
-        <MaterialIcons name="add" size={26} color="white" />
+        <Feather name="plus" size={24} color="white" />
       </TouchableOpacity>
     </View>
   );
@@ -326,17 +326,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.m,
     paddingBottom: 110,
   },
   header: {
-    marginBottom: 20,
+    marginBottom: Spacing.l,
   },
   headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    marginBottom: 24,
+    marginBottom: Spacing.l,
   },
   welcomeRow: {
     flex: 1,
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   dateSelector: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: Spacing.s,
     marginTop: 4,
   },
   navBtn: {
@@ -352,10 +352,10 @@ const styles = StyleSheet.create({
   },
   headerAddBtnFixed: {
     position: "absolute",
-    right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 15,
+    right: Spacing.l,
+    width: 48,
+    height: 48,
+    borderRadius: Spacing.m,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
@@ -368,7 +368,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 2,
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
+    textTransform: "uppercase",
   },
   title: {
     fontSize: 28,
@@ -376,17 +377,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   metricsGrid: {
-    gap: 12,
-    marginBottom: 32,
+    gap: Spacing.s,
+    marginBottom: Spacing.xl,
   },
   row: {
     flexDirection: "row",
-    gap: 12,
+    gap: Spacing.s,
   },
   metricCard: {
     flex: 1,
-    padding: 16,
-    borderRadius: 16,
+    padding: Spacing.m,
+    borderRadius: Spacing.m,
     borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
@@ -397,8 +398,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   iconBox: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
@@ -417,7 +418,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: Spacing.m,
   },
   sectionTitle: {
     fontSize: 18,

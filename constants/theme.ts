@@ -56,17 +56,20 @@ export const Colors = {
   },
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    sans: "SF Pro Text",
-    serif: "ui-serif",
-    rounded: "SF Pro Rounded",
-    mono: "ui-monospace",
-  },
-  default: {
-    sans: "Inter",
-    serif: "serif",
-    rounded: "normal",
-    mono: "monospace",
-  },
-});
+export const Spacing = {
+  xs: 4,
+  s: 8,
+  m: 16,
+  l: 24,
+  xl: 32,
+  xxl: 40,
+  pill: 999,
+};
+
+export const Fonts = {
+  regular: Platform.OS === "ios" ? "System" : "sans-serif",
+  medium: Platform.OS === "ios" ? "System" : "sans-serif-medium",
+  semiBold: Platform.OS === "ios" ? "System" : "sans-serif-medium",
+  bold: Platform.OS === "ios" ? "System" : "sans-serif-bold",
+  mono: "ui-monospace, monospace",
+};
