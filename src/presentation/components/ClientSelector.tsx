@@ -58,6 +58,7 @@ export function ClientSelector({
       createdAt: now,
       updatedAt: now,
       isDeleted: false,
+      isNew: true,
     };
 
     const service = new ClientService();

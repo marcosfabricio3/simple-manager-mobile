@@ -26,6 +26,8 @@ interface AppointmentJoinedRow {
   isDeleted: number;
   seriesId: string;
   recurrence: "none" | "weekly" | "biweekly" | "monthly";
+  paymentMethod?: string;
+  paymentMethodDetails?: string;
   clientName: string;
   clientPhone?: string;
   clientIsNew: number;
@@ -42,8 +44,8 @@ export class AppointmentRepository {
       // 1. Insert Appointment
       await db.runAsync(
         `INSERT INTO appointments (
-            id, clientId, date, durationMinutes, status, paymentStatus, notes, seriesId, recurrence, createdAt, updatedAt, isDeleted
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, clientId, date, durationMinutes, status, paymentStatus, paymentMethod, paymentMethodDetails, notes, seriesId, recurrence, createdAt, updatedAt, isDeleted
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           appointment.id,
           appointment.clientId,
@@ -51,6 +53,8 @@ export class AppointmentRepository {
           appointment.durationMinutes,
           appointment.status,
           appointment.paymentStatus,
+          appointment.paymentMethod || null,
+          appointment.paymentMethodDetails || null,
           appointment.notes || null,
           appointment.seriesId,
           appointment.recurrence,
@@ -134,6 +138,8 @@ export class AppointmentRepository {
           durationMinutes: r.durationMinutes,
           status: r.status,
           paymentStatus: r.paymentStatus || "unpaid",
+          paymentMethod: r.paymentMethod as any,
+          paymentMethodDetails: r.paymentMethodDetails,
           createdAt: r.createdAt,
           updatedAt: r.updatedAt,
           isDeleted: Boolean(r.isDeleted),
@@ -209,6 +215,8 @@ export class AppointmentRepository {
           durationMinutes: r.durationMinutes,
           status: r.status,
           paymentStatus: r.paymentStatus || "unpaid",
+          paymentMethod: r.paymentMethod as any,
+          paymentMethodDetails: r.paymentMethodDetails,
           createdAt: r.createdAt,
           updatedAt: r.updatedAt,
           isDeleted: Boolean(r.isDeleted),
@@ -272,6 +280,8 @@ export class AppointmentRepository {
           durationMinutes: r.durationMinutes,
           status: r.status,
           paymentStatus: r.paymentStatus || "unpaid",
+          paymentMethod: r.paymentMethod as any,
+          paymentMethodDetails: r.paymentMethodDetails,
           createdAt: r.createdAt,
           updatedAt: r.updatedAt,
           isDeleted: Boolean(r.isDeleted),
@@ -343,6 +353,8 @@ export class AppointmentRepository {
           durationMinutes: r.durationMinutes,
           status: r.status,
           paymentStatus: r.paymentStatus || "unpaid",
+          paymentMethod: r.paymentMethod as any,
+          paymentMethodDetails: r.paymentMethodDetails,
           createdAt: r.createdAt,
           updatedAt: r.updatedAt,
           isDeleted: Boolean(r.isDeleted),
@@ -436,6 +448,8 @@ export class AppointmentRepository {
           durationMinutes: row.durationMinutes,
           status: row.status,
           paymentStatus: row.paymentStatus,
+          paymentMethod: row.paymentMethod as any,
+          paymentMethodDetails: row.paymentMethodDetails,
           notes: row.notes,
           createdAt: row.createdAt,
           updatedAt: row.updatedAt,
@@ -472,10 +486,10 @@ export class AppointmentRepository {
     return firstEntry;
   }
 
-  async updatePaymentStatus(id: string, paymentStatus: "paid" | "unpaid") {
+  async updatePaymentStatus(id: string, paymentStatus: "paid" | "unpaid", paymentMethod?: string, paymentMethodDetails?: string) {
     await db.runAsync(
-      `UPDATE appointments SET paymentStatus = ? WHERE id = ?`,
-      [paymentStatus, id],
+      `UPDATE appointments SET paymentStatus = ?, paymentMethod = ?, paymentMethodDetails = ? WHERE id = ?`,
+      [paymentStatus, paymentMethod || null, paymentMethodDetails || null, id],
     );
   }
 
@@ -494,7 +508,7 @@ export class AppointmentRepository {
       // 1. Update Appointment
       await db.runAsync(
         `UPDATE appointments 
-         SET clientId = ?, date = ?, durationMinutes = ?, status = ?, paymentStatus = ?, notes = ?, seriesId = ?, recurrence = ?, updatedAt = ?, isDeleted = ?
+         SET clientId = ?, date = ?, durationMinutes = ?, status = ?, paymentStatus = ?, paymentMethod = ?, paymentMethodDetails = ?, notes = ?, seriesId = ?, recurrence = ?, updatedAt = ?, isDeleted = ?
          WHERE id = ?`,
         [
           appointment.clientId,
@@ -502,6 +516,8 @@ export class AppointmentRepository {
           appointment.durationMinutes,
           appointment.status,
           appointment.paymentStatus,
+          appointment.paymentMethod || null,
+          appointment.paymentMethodDetails || null,
           appointment.notes || null,
           appointment.seriesId,
           appointment.recurrence,

@@ -39,6 +39,7 @@ describe("ClientService (Application Layer)", () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isDeleted: false,
+      isNew: true,
     };
 
     await service.create(client);
@@ -54,8 +55,8 @@ describe("ClientService (Application Layer)", () => {
         name: "Carlos",
         phone: "111",
         createdAt: "",
-        updatedAt: "",
         isDeleted: false,
+        isNew: true,
       },
     ];
     mockFindAll.mockResolvedValueOnce(fakeClients);
@@ -81,6 +82,7 @@ describe("ClientService (Application Layer)", () => {
       createdAt: "2024-01-01T00:00:00.000Z",
       updatedAt: "2024-01-01T00:00:00.000Z",
       isDeleted: false,
+      isNew: false,
     };
 
     const before = Date.now();

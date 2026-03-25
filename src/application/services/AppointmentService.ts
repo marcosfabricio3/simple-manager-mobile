@@ -223,8 +223,8 @@ export class AppointmentService {
     }
   }
 
-  async updatePaymentStatus(id: string, status: "paid" | "unpaid") {
-    await this.appointmentRepo.updatePaymentStatus(id, status);
+  async updatePaymentStatus(id: string, status: "paid" | "unpaid", paymentMethod?: string, paymentMethodDetails?: string) {
+    await this.appointmentRepo.updatePaymentStatus(id, status, paymentMethod, paymentMethodDetails);
     const appt = await this.appointmentRepo.findById(id);
     if (appt) {
       await this.evaluateClientNewStatus(appt.clientId);

@@ -1,6 +1,7 @@
 import { Colors } from "@/constants/theme";
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { Service } from "@/src/domain/entities/Service";
+import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -12,6 +13,7 @@ interface Props {
 
 export function ServiceCard({ service, onEdit, onDelete }: Props) {
   const { darkMode } = useSettingsStore();
+  const { t } = useI18n();
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
 
@@ -31,7 +33,7 @@ export function ServiceCard({ service, onEdit, onDelete }: Props) {
             </Text>
           </View>
           <Text style={[styles.priceValue, { color: colors.primary }]}>
-            ${service.defaultPrice.toLocaleString()}
+            {t.common.currency}{service.defaultPrice.toLocaleString()}
           </Text>
         </View>
 

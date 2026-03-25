@@ -47,10 +47,15 @@ export function useAppointmentActions() {
     );
   };
 
-  const togglePaymentStatus = async (appointment: AppointmentWithDetails, onRefresh?: () => void) => {
+  const togglePaymentStatus = async (
+    appointment: AppointmentWithDetails, 
+    onRefresh?: () => void,
+    paymentMethod?: string,
+    paymentMethodDetails?: string
+  ) => {
     const newStatus = appointment.paymentStatus === "paid" ? "unpaid" : "paid";
     try {
-      await service.updatePaymentStatus(appointment.id, newStatus);
+      await service.updatePaymentStatus(appointment.id, newStatus, paymentMethod, paymentMethodDetails);
       LayoutAnimation.configureNext(
         LayoutAnimation.Presets.easeInEaseOut,
       );

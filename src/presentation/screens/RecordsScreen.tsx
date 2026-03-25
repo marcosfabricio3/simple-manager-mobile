@@ -81,7 +81,7 @@ export default function RecordsScreen() {
       setType("");
     } catch (error) {
       addToast(
-        error instanceof Error ? error.message : "Error",
+        error instanceof Error ? error.message : t.common.error,
         "error",
       );
     }
@@ -114,7 +114,7 @@ export default function RecordsScreen() {
       addToast(tr.deleteSuccess, "info");
     } catch (error) {
       addToast(
-        error instanceof Error ? error.message : "Error",
+        error instanceof Error ? error.message : t.common.error,
         "error",
       );
     }

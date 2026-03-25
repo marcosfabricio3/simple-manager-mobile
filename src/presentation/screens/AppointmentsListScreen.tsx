@@ -18,6 +18,8 @@ import {
 } from "react-native";
 import { useAppointmentActions } from "@/src/presentation/hooks/useAppointmentActions";
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
+import { PaymentMethodModal } from "@/src/presentation/components/PaymentMethodModal";
+import { AppointmentWithDetails } from "@/src/domain/entities/Appointment";
 import {
   Calendar,
   CalendarProvider,
@@ -61,6 +63,7 @@ export default function AppointmentsListScreen() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [viewMode, setViewMode] = useState<"day" | "month">("day");
+  const [pendingPaymentAppointment, setPendingPaymentAppointment] = useState<AppointmentWithDetails | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -237,7 +240,7 @@ export default function AppointmentsListScreen() {
               style={[styles.toggleBtn, viewMode === "day" && { backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 }]}
             >
               <Text style={[styles.toggleText, { color: viewMode === "day" ? "white" : colors.subtext }]}>
-                {language === "es" ? "Día" : "Day"}
+                {t.common.day}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -245,7 +248,7 @@ export default function AppointmentsListScreen() {
               style={[styles.toggleBtn, viewMode === "month" && { backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 4, elevation: 4 }]}
             >
               <Text style={[styles.toggleText, { color: viewMode === "month" ? "white" : colors.subtext }]}>
-                {language === "es" ? "Mes" : "Mo"}
+                {t.common.shortMonth}
               </Text>
             </TouchableOpacity>
           </View>
@@ -368,7 +371,13 @@ export default function AppointmentsListScreen() {
                     },
                     {
                       text: appointment.paymentStatus === "paid" ? t.clientProfile.markAsUnpaid : t.clientProfile.markAsPaid,
-                      onPress: () => togglePaymentStatus(appointment, () => loadMonth(currentYear, currentMonth, true))
+                      onPress: () => {
+                        if (appointment.paymentStatus === "unpaid") {
+                          setPendingPaymentAppointment(appointment);
+                        } else {
+                          togglePaymentStatus(appointment, () => loadMonth(currentYear, currentMonth, true));
+                        }
+                      }
                     },
                     {
                       text: t.common.delete,
@@ -420,6 +429,15 @@ export default function AppointmentsListScreen() {
           )}
         </View>
 
+        <PaymentMethodModal
+          visible={!!pendingPaymentAppointment}
+          onClose={() => setPendingPaymentAppointment(null)}
+          onConfirm={(method, details) => {
+            if (pendingPaymentAppointment) {
+              togglePaymentStatus(pendingPaymentAppointment, () => loadMonth(currentYear, currentMonth, true), method, details);
+            }
+          }}
+        />
       </View>
     </CalendarProvider>
   );

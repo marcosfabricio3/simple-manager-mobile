@@ -10,6 +10,12 @@ export interface ServiceStat {
   percentage: number;
 }
 
+export interface PaymentMethodStat {
+  method: string;
+  count: number;
+  amount: number;
+}
+
 export interface MonthlyStats {
   // Revenue
   totalRevenue: number;
@@ -22,6 +28,8 @@ export interface MonthlyStats {
   cancelled: number;
   // Top services
   topServices: ServiceStat[];
+  // Payment methods
+  paymentMethods: PaymentMethodStat[];
   // Global
   totalClients: number;
 }
@@ -35,6 +43,7 @@ const EMPTY_STATS: MonthlyStats = {
   pending: 0,
   cancelled: 0,
   topServices: [],
+  paymentMethods: [],
   totalClients: 0,
 };
 
@@ -87,6 +96,8 @@ export function useStatistics() {
         // Revenue — only from paid+completed appointments
         let paidRevenue = 0;
         let outstandingRevenue = 0;
+        
+        const paymentMap = new Map<string, { amount: number; count: number }>();
 
         for (const appt of appointments) {
           if (appt.status === "cancelled") continue;
@@ -96,6 +107,12 @@ export function useStatistics() {
           );
           if (appt.paymentStatus === "paid") {
             paidRevenue += apptTotal;
+            const method = appt.paymentMethod || "unknown";
+            const current = paymentMap.get(method) || { amount: 0, count: 0 };
+            paymentMap.set(method, {
+              amount: current.amount + apptTotal,
+              count: current.count + 1
+            });
           } else {
             outstandingRevenue += apptTotal;
           }
@@ -128,6 +145,14 @@ export function useStatistics() {
                 : 0,
           }));
 
+        const paymentMethods: PaymentMethodStat[] = Array.from(paymentMap.entries())
+          .sort((a, b) => b[1].amount - a[1].amount)
+          .map(([method, data]) => ({
+            method,
+            count: data.count,
+            amount: data.amount,
+          }));
+
         setStats({
           totalRevenue: paidRevenue + outstandingRevenue,
           paidRevenue,
@@ -137,6 +162,7 @@ export function useStatistics() {
           pending,
           cancelled,
           topServices,
+          paymentMethods,
           totalClients,
         });
       } catch (err) {

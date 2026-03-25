@@ -8,6 +8,8 @@ import { useAppointmentActions } from "@/src/presentation/hooks/useAppointmentAc
 import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { PaymentMethodModal } from "./PaymentMethodModal";
+import React, { useState } from "react";
 
 interface Props {
   appointment: AppointmentWithDetails;
@@ -28,6 +30,7 @@ export function AppointmentCard({
   const { deleteAppointmentWithPrompt, togglePaymentStatus } = useAppointmentActions();
   const { darkMode, language } = useSettingsStore();
   const { t } = useI18n();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -121,7 +124,13 @@ export function AppointmentCard({
               <MaterialIcons name="edit" size={20} color={colors.primary} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => togglePaymentStatus(appointment, onStatusUpdate)}
+              onPress={() => {
+                if (appointment.paymentStatus === "unpaid") {
+                  setShowPaymentModal(true);
+                } else {
+                  togglePaymentStatus(appointment, onStatusUpdate);
+                }
+              }}
               style={styles.iconBtn}
             >
               <MaterialIcons 
@@ -182,7 +191,7 @@ export function AppointmentCard({
         <View style={styles.detailRow}>
           <MaterialIcons name="event" size={16} color={colors.primary} />
           <Text style={[styles.detailText, { color: colors.text }]}>
-            {dateObj.toLocaleDateString()}
+            {dateObj.toLocaleDateString(language === "es" ? "es-AR" : "en-US")}
           </Text>
         </View>
         <View style={styles.detailRow}>
@@ -211,7 +220,7 @@ export function AppointmentCard({
           <Text style={[styles.totalLabel, { color: colors.subtext }]}>
             {t.appointments.total}:{" "}
             <Text style={[styles.totalValue, { color: colors.text }]}>
-              ${appointment.totalPrice.toFixed(2)}
+              {t.common.currency}{appointment.totalPrice.toFixed(2)}
             </Text>
           </Text>
           <View style={[
@@ -228,6 +237,9 @@ export function AppointmentCard({
               { color: appointment.paymentStatus === "paid" ? colors.success : colors.subtext }
             ]}>
               {appointment.paymentStatus === "paid" ? t.appointments.paid : t.appointments.unpaid}
+              {appointment.paymentStatus === "paid" && appointment.paymentMethod && (
+                <Text style={{ fontSize: 9 }}> • {t.appointments[`method_${appointment.paymentMethod}` as keyof typeof t.appointments] || appointment.paymentMethod}</Text>
+              )}
             </Text>
           </View>
         </View>
@@ -239,7 +251,13 @@ export function AppointmentCard({
             <MaterialIcons name="edit" size={20} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => togglePaymentStatus(appointment, onStatusUpdate)}
+            onPress={() => {
+              if (appointment.paymentStatus === "unpaid") {
+                setShowPaymentModal(true);
+              } else {
+                togglePaymentStatus(appointment, onStatusUpdate);
+              }
+            }}
             style={styles.actionBtn}
           >
             <MaterialIcons 
@@ -264,6 +282,14 @@ export function AppointmentCard({
           </TouchableOpacity>
         </View>
       </View>
+
+      <PaymentMethodModal
+        visible={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onConfirm={(method, details) => {
+          togglePaymentStatus(appointment, onStatusUpdate, method, details);
+        }}
+      />
     </View>
   );
 }

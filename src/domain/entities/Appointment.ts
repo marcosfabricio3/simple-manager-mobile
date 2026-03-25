@@ -1,6 +1,7 @@
 export type AppointmentStatus = "pending" | "cancelled" | "completed";
 export type PaymentStatus = "paid" | "unpaid";
 export type RecurrenceType = "none" | "weekly" | "biweekly" | "monthly";
+export type PaymentMethod = "cash" | "debit_credit" | "mercado_pago" | "transfer" | "other";
 
 export interface Appointment {
   id: string;
@@ -9,6 +10,8 @@ export interface Appointment {
   durationMinutes: number;
   status: AppointmentStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod?: PaymentMethod;
+  paymentMethodDetails?: string;
   createdAt: string;
   updatedAt: string;
   isDeleted: boolean;

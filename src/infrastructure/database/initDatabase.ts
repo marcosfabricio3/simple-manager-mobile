@@ -47,6 +47,8 @@ export function initDatabase() {
             notes TEXT,
             seriesId TEXT NOT NULL,
             recurrence TEXT NOT NULL DEFAULT 'none',
+            paymentMethod TEXT,
+            paymentMethodDetails TEXT,
             createdAt TEXT NOT NULL,
             updatedAt TEXT NOT NULL,
             isDeleted INTEGER NOT NULL,
@@ -89,6 +91,18 @@ export function initDatabase() {
   try {
     db.execSync(
       `ALTER TABLE clients ADD COLUMN isNew INTEGER NOT NULL DEFAULT 1;`,
+    );
+  } catch (e) {}
+
+  try {
+    db.execSync(
+      `ALTER TABLE appointments ADD COLUMN paymentMethod TEXT;`,
+    );
+  } catch (e) {}
+
+  try {
+    db.execSync(
+      `ALTER TABLE appointments ADD COLUMN paymentMethodDetails TEXT;`,
     );
   } catch (e) {}
 

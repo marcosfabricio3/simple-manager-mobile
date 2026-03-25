@@ -121,10 +121,10 @@ describe("AppointmentService (Application Layer)", () => {
 
     const mockClientUpdate = jest.spyOn(ClientRepository.prototype, "update").mockResolvedValue(undefined);
 
-    await service.updatePaymentStatus("appt-id-123", "paid");
+    await service.updatePaymentStatus("appt-id-123", "paid", "cash", "Some details");
 
     expect(mockApptUpdatePayment).toHaveBeenCalledTimes(1);
-    expect(mockApptUpdatePayment).toHaveBeenCalledWith("appt-id-123", "paid");
+    expect(mockApptUpdatePayment).toHaveBeenCalledWith("appt-id-123", "paid", "cash", "Some details");
     expect(mockClientUpdate).toHaveBeenCalledWith({ id: "client-id", isNew: false });
 
     // Clean up

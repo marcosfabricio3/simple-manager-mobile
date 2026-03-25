@@ -8,6 +8,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { useServices } from "@/src/presentation/hooks/useServices";
+import { PaymentMethodModal } from "./PaymentMethodModal";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   ActivityIndicator,
@@ -47,7 +48,7 @@ export function ClientProfileModal({
 }: ClientProfileModalProps) {
   const [metrics, setMetrics] = useState<ClientMetrics | null>(null);
   const [loading, setLoading] = useState(false);
-   const { darkMode } = useSettingsStore();
+   const { darkMode, language } = useSettingsStore();
   const { t } = useI18n();
   const { services: allServices } = useServices();
 
@@ -56,6 +57,7 @@ export function ClientProfileModal({
   const [serviceFilter, setServiceFilter] = useState<string | "all">("all");
   const [dateFilter, setDateFilter] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pendingPaymentAppointment, setPendingPaymentAppointment] = useState<AppointmentWithDetails | null>(null);
 
   const theme = darkMode ? "dark" : "light";
   const colors = Colors[theme];
@@ -82,11 +84,13 @@ export function ClientProfileModal({
   const handleTogglePayment = async (
     appointmentId: string,
     currentStatus: "paid" | "unpaid",
+    paymentMethod?: string,
+    paymentMethodDetails?: string
   ) => {
     try {
       const newStatus = currentStatus === "paid" ? "unpaid" : "paid";
       const service = new AppointmentService();
-      await service.updatePaymentStatus(appointmentId, newStatus);
+      await service.updatePaymentStatus(appointmentId, newStatus, paymentMethod, paymentMethodDetails);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       await loadMetrics(); // Refresh data
     } catch (e) {
@@ -373,7 +377,7 @@ export function ClientProfileModal({
               <Text style={[styles.minorMetric, { color: colors.subtext }]}>
                 {t.clientProfile.nextAppointment}:{" "}
                 {metrics.nextPending
-                  ? new Date(metrics.nextPending).toLocaleDateString()
+                  ? new Date(metrics.nextPending).toLocaleDateString(language === "es" ? "es-AR" : "en-US")
                   : t.clientProfile.none}
               </Text>
             </View>
@@ -443,7 +447,7 @@ export function ClientProfileModal({
                 >
                   <MaterialIcons name="event" size={16} color={dateFilter ? colors.primary : colors.subtext} />
                   <Text style={[styles.filterChipText, { color: dateFilter ? colors.primary : colors.text }]}>
-                    {dateFilter ? dateFilter.toLocaleDateString() : t.clientProfile.dateFilter}
+                    {dateFilter ? dateFilter.toLocaleDateString(language === "es" ? "es-AR" : "en-US") : t.clientProfile.dateFilter}
                   </Text>
                 </TouchableOpacity>
 
@@ -514,8 +518,8 @@ export function ClientProfileModal({
                   <View style={styles.appHeader}>
                     <View>
                       <Text style={[styles.appDate, { color: colors.text }]}>
-                        {new Date(item.date).toLocaleDateString()} -{" "}
-                        {new Date(item.date).toLocaleTimeString([], {
+                        {new Date(item.date).toLocaleDateString(language === "es" ? "es-AR" : "en-US")} -{" "}
+                        {new Date(item.date).toLocaleTimeString(language === "es" ? "es-AR" : "en-US", {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -620,9 +624,13 @@ export function ClientProfileModal({
                             : styles.toggleUnpaid,
                           darkMode && { backgroundColor: "transparent" },
                         ]}
-                        onPress={() =>
-                          handleTogglePayment(item.id, item.paymentStatus)
-                        }
+                        onPress={() => {
+                          if (item.paymentStatus === "unpaid") {
+                            setPendingPaymentAppointment(item);
+                          } else {
+                            handleTogglePayment(item.id, item.paymentStatus);
+                          }
+                        }}
                       >
                         <Text
                           style={[
@@ -644,6 +652,16 @@ export function ClientProfileModal({
             />
           </View>
         )}
+
+        <PaymentMethodModal
+          visible={!!pendingPaymentAppointment}
+          onClose={() => setPendingPaymentAppointment(null)}
+          onConfirm={(method, details) => {
+            if (pendingPaymentAppointment) {
+              handleTogglePayment(pendingPaymentAppointment.id, pendingPaymentAppointment.paymentStatus, method, details);
+            }
+          }}
+        />
       </View>
     </Modal>
   );

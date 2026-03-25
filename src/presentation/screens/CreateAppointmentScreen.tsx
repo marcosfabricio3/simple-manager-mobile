@@ -145,7 +145,7 @@ export default function CreateAppointmentScreen() {
         router.replace("/(tabs)/appointments");
       }
     } catch (error) {
-      addToast(error instanceof Error ? error.message : "Error", "error");
+      addToast(error instanceof Error ? error.message : t.common.error, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -411,14 +411,14 @@ export default function CreateAppointmentScreen() {
                       </Text>
                     </View>
                     <Text style={[styles.checkPrice, { color: colors.subtext }]}>
-                      ${svc.defaultPrice}
+                      {t.common.currency}{svc.defaultPrice}
                     </Text>
                   </TouchableOpacity>
 
                   {!!selected && (
                     <View style={styles.overrideContainer}>
                       <Text style={[styles.overrideLabel, { color: colors.subtext }]}>
-                        {t.services?.price || "Precio"}:
+                        {t.services.price}:
                       </Text>
                       <TextInput
                         keyboardType="numeric"

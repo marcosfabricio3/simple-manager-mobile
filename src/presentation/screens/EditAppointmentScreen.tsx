@@ -152,7 +152,7 @@ export default function EditAppointmentScreen() {
 
     setIsSubmitting(true);
     try {
-      if (!id) throw new Error("ID de turno faltante");
+      if (!id) throw new Error(t.appointments.idMissing);
 
       if (!dateStr || !timeStr) {
         throw new Error(t.appointments.completeFields);
@@ -164,7 +164,7 @@ export default function EditAppointmentScreen() {
       }
 
       if (!endTimeStr) {
-        throw new Error("Hora de fin es requerida (HH:MM)");
+        throw new Error(t.appointments.endTimeRequired);
       }
 
       const combinedEndDate = new Date(`${dateStr}T${endTimeStr}:00`);
@@ -212,7 +212,7 @@ export default function EditAppointmentScreen() {
         router.replace("/(tabs)/appointments");
       }
     } catch (error) {
-      addToast(error instanceof Error ? error.message : "Error", "error");
+      addToast(error instanceof Error ? error.message : t.common.error, "error");
     } finally {
       setIsSubmitting(false);
       setPendingOp(null);
@@ -222,7 +222,7 @@ export default function EditAppointmentScreen() {
   const handleDeletePrompt = () => {
     if (!id) return;
     deleteAppointmentWithPrompt(id, () => {
-      addToast(t.appointments.deleteSuccess || "Turno eliminado", "success");
+      addToast(t.appointments.deleteSuccess, "success");
       if (router.canGoBack()) {
         router.back();
       } else {
@@ -464,7 +464,7 @@ export default function EditAppointmentScreen() {
                       </Text>
                     </View>
                     <Text style={[styles.checkPrice, { color: colors.subtext }]}>
-                      ${svc.defaultPrice}
+                      {t.common.currency}{svc.defaultPrice}
                     </Text>
                   </TouchableOpacity>
 

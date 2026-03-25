@@ -261,7 +261,7 @@ export default function DashboardScreen() {
                   <MaterialIcons name="chevron-left" size={22} color={colors.text} />
                 </TouchableOpacity>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  {t.dashboard.title.includes("Panel") ? "Turnos de" : "Appointments"} {displayDateLabel}
+                  {t.dashboard.appointmentsFor} {displayDateLabel}
                 </Text>
                 <TouchableOpacity onPress={() => changeDay(1)} style={styles.navBtn}>
                   <MaterialIcons name="chevron-right" size={22} color={colors.text} />
@@ -280,7 +280,7 @@ export default function DashboardScreen() {
                     fontSize: 13,
                   }}
                 >
-                  {t.common?.cleanFilters || "Limpiar filtros"}
+                  {t.common.cleanFilters}
                 </Text>
               </TouchableOpacity>
             </View>

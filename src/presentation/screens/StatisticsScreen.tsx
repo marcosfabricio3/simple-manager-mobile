@@ -19,8 +19,8 @@ import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 // ---------------------------------------------------------------------------
 // Formatters
 // ---------------------------------------------------------------------------
-function formatCurrency(amount: number): string {
-  return `$${amount.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+function formatCurrency(amount: number, currency: string = "$"): string {
+  return `${currency}${amount.toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 function formatMonthYear(date: Date, language: string): string {
@@ -154,6 +154,72 @@ function ServiceBar({
   );
 }
 
+function PaymentMethodBar({
+  method,
+  count,
+  amount,
+  totalRevenue,
+  colors,
+  t,
+}: {
+  method: string;
+  count: number;
+  amount: number;
+  totalRevenue: number;
+  colors: (typeof Colors)["light"];
+  t: any;
+}) {
+  const percentage = totalRevenue > 0 ? (amount / totalRevenue) * 100 : 0;
+  
+  // Choose color based on method
+  let barColor = colors.primary;
+  switch (method) {
+    case "efectivo": barColor = "#4CAF50"; break; // Green
+    case "debito_credito": barColor = "#2196F3"; break; // Blue
+    case "mercado_pago": barColor = "#00B1EA"; break; // Light Blue
+    case "transferencia": barColor = "#9C27B0"; break; // Purple
+    default: barColor = "#FF9800"; break; // Orange (otros)
+  }
+
+  // Translate method name if possible
+  const methodKey = `method_${method.replace("ó", "o").replace("/", "_").toLowerCase()}`;
+  let translatedName = (t.appointments as any)[methodKey] || t.appointments.method_other || method;
+  
+  if (method === "unknown") translatedName = t.statistics.unknown || method;
+
+  return (
+    <View style={styles.serviceRow}>
+      <View style={styles.serviceInfo}>
+        <View style={styles.serviceLabelRow}>
+          <Text
+            style={[styles.serviceName, { color: colors.text, flex: 1 }]}
+            numberOfLines={1}
+          >
+            {translatedName}
+          </Text>
+          <Text style={[styles.serviceCount, { color: colors.text }]}>
+            {formatCurrency(amount, t.common.currency)}
+          </Text>
+        </View>
+        <View style={[styles.serviceTrack, { backgroundColor: colors.border, marginTop: 4 }]}>
+          <View
+            style={[
+              styles.serviceFill,
+              {
+                backgroundColor: barColor,
+                width: `${Math.max(percentage, percentage > 0 ? 4 : 0)}%` as any,
+              },
+            ]}
+          />
+        </View>
+        <Text style={[styles.servicePct, { color: colors.subtext, marginTop: 4 }]}>
+          {count} {count === 1 ? t.appointments.total : t.statistics.bookings} • {percentage.toFixed(1)}%
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main Screen
 // ---------------------------------------------------------------------------
@@ -233,14 +299,14 @@ export default function StatisticsScreen() {
           <View style={styles.statsGrid}>
             <StatCard
               label={ts.paid}
-              value={formatCurrency(stats.paidRevenue)}
+              value={formatCurrency(stats.paidRevenue, t.common.currency)}
               color={colors.success}
               icon="check-circle"
               colors={colors}
             />
             <StatCard
               label={ts.outstanding}
-              value={formatCurrency(stats.outstandingRevenue)}
+              value={formatCurrency(stats.outstandingRevenue, t.common.currency)}
               color={colors.warning}
               icon="schedule"
               colors={colors}
@@ -262,7 +328,7 @@ export default function StatisticsScreen() {
             />
             <Text style={[styles.totalRevenueLabel, { color: colors.primary }]}>
               {" "}
-              {ts.total}: {formatCurrency(stats.totalRevenue)}
+              {ts.total}: {formatCurrency(stats.totalRevenue, t.common.currency)}
             </Text>
           </View>
 
@@ -321,6 +387,34 @@ export default function StatisticsScreen() {
                   rank={i}
                   colors={colors}
                 />
+              ))
+            )}
+          </View>
+
+          {/* Payment Methods Section */}
+          <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+            {ts.paymentMethods}
+          </Text>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
+            {stats.paymentMethods.length === 0 ? (
+              <Text style={[styles.emptyText, { color: colors.subtext }]}>
+                {ts.noData}
+              </Text>
+            ) : (
+              stats.paymentMethods.map((method, i) => (
+                <View key={method.method}>
+                  <PaymentMethodBar
+                    method={method.method}
+                    count={method.count}
+                    amount={method.amount}
+                    totalRevenue={stats.paidRevenue}
+                    colors={colors}
+                    t={t}
+                  />
+                  {i < stats.paymentMethods.length - 1 && (
+                    <View style={{ height: 16 }} />
+                  )}
+                </View>
               ))
             )}
           </View>
