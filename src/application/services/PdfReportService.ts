@@ -13,7 +13,8 @@ export class PdfReportService {
     appointments: AppointmentWithDetails[],
     title: string,
     t: any,
-    language: "en" | "es" = "es"
+    language: "en" | "es" = "es",
+    freeBillingEnabled: boolean = false
   ): Promise<void> {
     try {
       const ts = t.statistics;
@@ -23,6 +24,8 @@ export class PdfReportService {
       
       // Calculate Metrics
       let totalPaid = 0;
+      let totalPaidFacturado = 0;
+      let totalPaidNoFacturado = 0;
       let totalUnpaid = 0;
 
       appointments.forEach((appt) => {
@@ -32,6 +35,11 @@ export class PdfReportService {
 
         if (appt.paymentStatus === "paid") {
           totalPaid += appt.totalPrice;
+          if (appt.isFacturado) {
+            totalPaidFacturado += appt.totalPrice;
+          } else {
+            totalPaidNoFacturado += appt.totalPrice;
+          }
         } else {
           totalUnpaid += appt.totalPrice;
         }
@@ -48,10 +56,10 @@ export class PdfReportService {
               h1 { color: #007AFF; font-size: 24px; margin-bottom: 5px; }
               h2 { font-size: 16px; color: #8E8E93; text-transform: uppercase; margin-top: 0; }
               
-              .metrics-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 30px; }
-              .metric-card { flex: 1; min-width: 140px; padding: 15px; background-color: #F2F2F7; border-radius: 10px; }
-              .metric-title { font-size: 11px; color: #8E8E93; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; }
-              .metric-value { font-size: 22px; font-weight: bold; color: #1C1C1E; }
+              .metrics-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 30px; justify-content: space-between; }
+              .metric-card { flex: 1; min-width: 100px; padding: 12px 10px; background-color: #F2F2F7; border-radius: 10px; }
+              .metric-title { font-size: 9px; color: #8E8E93; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; height: 20px; }
+              .metric-value { font-size: 16px; font-weight: bold; color: #1C1C1E; }
               .metric-income { color: #34C759; }
               .metric-debt { color: #FF3B30; }
               
@@ -76,10 +84,25 @@ export class PdfReportService {
             </div>
 
             <div class="metrics-container">
-              <div class="metric-card">
-                <div class="metric-title">${ts.totalPaid}</div>
-                <div class="metric-value metric-income">$${totalPaid.toFixed(0)}</div>
-              </div>
+              ${freeBillingEnabled ? `
+                <div class="metric-card">
+                  <div class="metric-title">${ts.paidFacturado}</div>
+                  <div class="metric-value metric-income">$${totalPaidFacturado.toFixed(0)}</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-title">${ts.paidNoFacturado}</div>
+                  <div class="metric-value" style="color: #007AFF;">$${totalPaidNoFacturado.toFixed(0)}</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-title">${ts.totalPaid}</div>
+                  <div class="metric-value metric-income" style="border-bottom: 2px solid #34C759;">$${totalPaid.toFixed(0)}</div>
+                </div>
+              ` : `
+                <div class="metric-card">
+                  <div class="metric-title">${ts.totalPaid}</div>
+                  <div class="metric-value metric-income">$${totalPaid.toFixed(0)}</div>
+                </div>
+              `}
               <div class="metric-card">
                 <div class="metric-title">${ts.totalUnpaid}</div>
                 <div class="metric-value metric-debt">$${totalUnpaid.toFixed(0)}</div>
@@ -127,10 +150,25 @@ export class PdfReportService {
             </table>
             
             <div class="totals-box">
-              <div class="total-row">
-                <span class="total-label">${ts.totalPaid}:</span>
-                <span style="color: #34C759;">$${totalPaid.toFixed(0)}</span>
-              </div>
+              ${freeBillingEnabled ? `
+                <div class="total-row">
+                  <span class="total-label">${ts.paidFacturado}:</span>
+                  <span style="color: #34C759;">$${totalPaidFacturado.toFixed(0)}</span>
+                </div>
+                <div class="total-row">
+                  <span class="total-label">${ts.paidNoFacturado}:</span>
+                  <span style="color: #007AFF;">$${totalPaidNoFacturado.toFixed(0)}</span>
+                </div>
+                <div class="total-row" style="border-top: 1px dotted #CCC; margin-top: 5px; padding-top: 5px;">
+                  <span class="total-label">${ts.totalPaid}:</span>
+                  <span style="color: #34C759;">$${totalPaid.toFixed(0)}</span>
+                </div>
+              ` : `
+                <div class="total-row">
+                  <span class="total-label">${ts.totalPaid}:</span>
+                  <span style="color: #34C759;">$${totalPaid.toFixed(0)}</span>
+                </div>
+              `}
               <div class="total-row">
                 <span class="total-label">${ts.totalUnpaid}:</span>
                 <span style="color: #FF3B30;">$${totalUnpaid.toFixed(0)}</span>

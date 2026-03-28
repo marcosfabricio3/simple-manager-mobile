@@ -14,7 +14,8 @@ export class XlsxReportService {
     appointments: AppointmentWithDetails[],
     title: string,
     t: any,
-    language: "en" | "es" = "es"
+    language: "en" | "es" = "es",
+    freeBillingEnabled: boolean = false
   ): Promise<void> {
     try {
       const ts = t.statistics;
@@ -23,13 +24,20 @@ export class XlsxReportService {
 
       // Calculate Metrics
       let totalPaid = 0;
+      let totalPaidFacturado = 0;
+      let totalPaidNoFacturado = 0;
       let totalUnpaid = 0;
 
       const data = appointments.map((appt) => {
         const isPaid = appt.paymentStatus === "paid";
         if (appt.status !== "cancelled") {
-          if (isPaid) totalPaid += appt.totalPrice;
-          else totalUnpaid += appt.totalPrice;
+          if (isPaid) {
+            totalPaid += appt.totalPrice;
+            if (appt.isFacturado) totalPaidFacturado += appt.totalPrice;
+            else totalPaidNoFacturado += appt.totalPrice;
+          } else {
+            totalUnpaid += appt.totalPrice;
+          }
         }
 
         const dateStr = format(new Date(appt.date), dateFormat, {
@@ -52,6 +60,18 @@ export class XlsxReportService {
 
       // Add totals at the end
       data.push({} as any); // Empty row
+      
+      if (freeBillingEnabled) {
+        data.push({
+          [ts.tableFecha]: ts.paidFacturado,
+          [ts.tableCliente]: totalPaidFacturado,
+        } as any);
+        data.push({
+          [ts.tableFecha]: ts.paidNoFacturado,
+          [ts.tableCliente]: totalPaidNoFacturado,
+        } as any);
+      }
+
       data.push({
         [ts.tableFecha]: ts.totalPaid,
         [ts.tableCliente]: totalPaid,

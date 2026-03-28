@@ -268,9 +268,9 @@ export default function StatisticsScreen() {
       }
 
       if (type === "pdf") {
-        await pdfService.generateReport(appointments, title, t, language);
+        await pdfService.generateReport(appointments, title, t, language, freeBillingEnabled);
       } else {
-        await xlsxService.generateReport(appointments, title, t, language);
+        await xlsxService.generateReport(appointments, title, t, language, freeBillingEnabled);
       }
     } catch (error) {
       console.error("Export failed:", error);
@@ -394,6 +394,29 @@ export default function StatisticsScreen() {
               colors={colors}
             />
           </View>
+          {freeBillingEnabled && (
+            <View
+              style={[
+                styles.totalRevenueCard,
+                {
+                  backgroundColor: colors.success + "12",
+                  borderColor: colors.success + "30",
+                  marginBottom: 10,
+                },
+              ]}
+            >
+              <MaterialIcons
+                name="payments"
+                size={20}
+                color={colors.success}
+              />
+              <Text style={[styles.totalRevenueLabel, { color: colors.success }]}>
+                {" "}
+                {ts.totalPaid}: {formatCurrency(stats.paidRevenue, t.common.currency)}
+              </Text>
+            </View>
+          )}
+
           <View
             style={[
               styles.totalRevenueCard,
@@ -446,24 +469,46 @@ export default function StatisticsScreen() {
                   color={colors.danger}
                   colors={colors}
                 />
+                
                 {freeBillingEnabled && (
-                  <>
-                    <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 8 }} />
-                    <ProgressBar
-                      label={ts.billedCount}
-                      count={stats.billedCount}
-                      total={stats.completed}
-                      color={colors.primary}
-                      colors={colors}
-                    />
-                    <ProgressBar
-                      label={ts.unbilledCount}
-                      count={stats.unbilledCount}
-                      total={stats.completed}
-                      color={colors.secondary}
-                      colors={colors}
-                    />
-                  </>
+                  <View style={{ marginTop: 20 }}>
+                    <View style={{ height: 1.5, backgroundColor: colors.border, marginBottom: 16 }} />
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                      {(() => {
+                        const paidTotalCount = stats.billedCount + stats.unbilledCount;
+                        const billedPct = paidTotalCount > 0 ? Math.round((stats.billedCount / paidTotalCount) * 100) : 0;
+                        const unbilledPct = paidTotalCount > 0 ? Math.round((stats.unbilledCount / paidTotalCount) * 100) : 0;
+                        
+                        return (
+                          <>
+                            <View style={[styles.billingCapsule, { backgroundColor: colors.primary + '15' }]}>
+                              <View style={[styles.billingIconWrap, { backgroundColor: colors.primary }]}>
+                                <MaterialIcons name="done-all" size={14} color="#FFF" />
+                              </View>
+                              <View>
+                                <Text style={[styles.billingCapLabel, { color: colors.subtext }]}>{ts.billedCount}</Text>
+                                <Text style={[styles.billingCapValue, { color: colors.primary }]}>
+                                  {stats.billedCount} ({billedPct}%)
+                                </Text>
+                              </View>
+                            </View>
+
+                            <View style={[styles.billingCapsule, { backgroundColor: colors.secondary + '15' }]}>
+                              <View style={[styles.billingIconWrap, { backgroundColor: colors.secondary }]}>
+                                <MaterialIcons name="receipt" size={14} color="#FFF" />
+                              </View>
+                              <View>
+                                <Text style={[styles.billingCapLabel, { color: colors.subtext }]}>{ts.unbilledCount}</Text>
+                                <Text style={[styles.billingCapValue, { color: colors.secondary }]}>
+                                  {stats.unbilledCount} ({unbilledPct}%)
+                                </Text>
+                              </View>
+                            </View>
+                          </>
+                        );
+                      })()}
+                    </View>
+                  </View>
                 )}
               </>
             )}
@@ -813,4 +858,29 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   loadingText: { fontSize: 14 },
+  billingCapsule: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    borderRadius: 12,
+    gap: 10,
+  },
+  billingIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  billingCapLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  billingCapValue: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
 });
