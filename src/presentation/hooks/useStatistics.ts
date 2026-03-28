@@ -20,6 +20,8 @@ export interface MonthlyStats {
   // Revenue
   totalRevenue: number;
   paidRevenue: number;
+  paidFacturado: number;
+  paidNoFacturado: number;
   outstandingRevenue: number;
   // Appointment counts
   total: number;
@@ -39,6 +41,8 @@ export interface MonthlyStats {
 const EMPTY_STATS: MonthlyStats = {
   totalRevenue: 0,
   paidRevenue: 0,
+  paidFacturado: 0,
+  paidNoFacturado: 0,
   outstandingRevenue: 0,
   total: 0,
   completed: 0,
@@ -98,6 +102,8 @@ export function useStatistics() {
 
         // Revenue — only from paid+completed appointments
         let paidRevenue = 0;
+        let paidFacturado = 0;
+        let paidNoFacturado = 0;
         let outstandingRevenue = 0;
         
         const paymentMap = new Map<string, { amount: number; count: number }>();
@@ -110,6 +116,11 @@ export function useStatistics() {
           );
           if (appt.paymentStatus === "paid") {
             paidRevenue += apptTotal;
+            if (appt.isFacturado) {
+              paidFacturado += apptTotal;
+            } else {
+              paidNoFacturado += apptTotal;
+            }
             const method = appt.paymentMethod || "unknown";
             const current = paymentMap.get(method) || { amount: 0, count: 0 };
             paymentMap.set(method, {
@@ -159,6 +170,8 @@ export function useStatistics() {
         setStats({
           totalRevenue: paidRevenue + outstandingRevenue,
           paidRevenue,
+          paidFacturado,
+          paidNoFacturado,
           outstandingRevenue,
           total: appointments.length,
           completed,

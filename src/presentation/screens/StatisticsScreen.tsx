@@ -230,7 +230,7 @@ function PaymentMethodBar({
 // ---------------------------------------------------------------------------
 
 export default function StatisticsScreen() {
-  const { darkMode, language } = useSettingsStore();
+  const { darkMode, language, freeBillingEnabled } = useSettingsStore();
   const colors = Colors[darkMode ? "dark" : "light"];
   const { t } = useI18n();
   const ts = t.statistics;
@@ -360,13 +360,32 @@ export default function StatisticsScreen() {
             {ts.monthlyRevenue}
           </Text>
           <View style={styles.statsGrid}>
-            <StatCard
-              label={ts.paid}
-              value={formatCurrency(stats.paidRevenue, t.common.currency)}
-              color={colors.success}
-              icon="check-circle"
-              colors={colors}
-            />
+            {freeBillingEnabled ? (
+              <>
+                <StatCard
+                  label={ts.paidFacturado}
+                  value={formatCurrency(stats.paidFacturado, t.common.currency)}
+                  color={colors.success}
+                  icon="check-circle"
+                  colors={colors}
+                />
+                <StatCard
+                  label={ts.paidNoFacturado}
+                  value={formatCurrency(stats.paidNoFacturado, t.common.currency)}
+                  color={colors.info}
+                  icon="account-balance"
+                  colors={colors}
+                />
+              </>
+            ) : (
+              <StatCard
+                label={ts.paid}
+                value={formatCurrency(stats.paidRevenue, t.common.currency)}
+                color={colors.success}
+                icon="check-circle"
+                colors={colors}
+              />
+            )}
             <StatCard
               label={ts.outstanding}
               value={formatCurrency(stats.outstandingRevenue, t.common.currency)}
