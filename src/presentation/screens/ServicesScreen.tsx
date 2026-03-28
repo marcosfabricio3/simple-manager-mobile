@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 24,
+    marginBottom: 20,
     gap: 16,
   },
   tutorialTitle: {

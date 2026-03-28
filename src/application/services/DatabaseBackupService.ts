@@ -1,29 +1,5 @@
-/**
- * DatabaseBackupService — Secure Portable Backup
- *
- * Backup format: ".smb" (Simple Manager Backup) — a JSON bundle containing:
- *   {
- *     version, exportedAt,
- *     kdf:  { salt, iterations },           // PBKDF2 params
- *     encKey: { iv, ciphertext },           // AES key wrapped with passphrase
- *     database: "<base64 sqlite file>"
- *   }
- *
- * Security model:
- *   1. User provides a passphrase.
- *   2. PBKDF2-SHA256 (250 000 iterations) derives a Key-Encryption-Key (KEK).
- *   3. KEK wraps the AES-256-GCM master key (from EncryptionService) with AES-256-GCM.
- *   4. The wrapped key + the SQLite file are packed into the .smb bundle and shared.
- *
- *   On restore:
- *   1. User picks the .smb file and enters passphrase.
- *   2. PBKDF2 re-derives KEK, decrypts master key.
- *   3. Master key is stored in SecureStore, replacing the current key.
- *   4. SQLite file is restored to disk.
- */
-
-import { db } from "@/src/infrastructure/database/database";
 import { encryptionService } from "@/src/application/services/EncryptionService";
+import { db } from "@/src/infrastructure/database/database";
 import {
   Language,
   translations,
@@ -31,129 +7,13 @@ import {
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
-import * as Crypto from "expo-crypto";
-import { Alert, Platform, BackHandler } from "react-native";
+import CryptoJS from "crypto-js";
+import { Alert, BackHandler, Platform } from "react-native";
 
 const DB_NAME = "simple_manager.db";
 const BACKUP_EXTENSION = ".smb";
-const BUNDLE_VERSION = 2;
-const PBKDF2_ITERATIONS = 250_000;
-
-// ---------------------------------------------------------------------------
-// Low-level crypto helpers
-// ---------------------------------------------------------------------------
-
-function bufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-function base64ToBuffer(b64: string): ArrayBuffer {
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
-const getSubtle = () => {
-  const c = (Crypto as any).subtle;
-  if (c && typeof c.importKey === "function") return c;
-
-  const globalCrypto = (global as any).crypto || (global as any).Crypto;
-  if (globalCrypto?.subtle && typeof globalCrypto.subtle.importKey === "function") {
-    return globalCrypto.subtle;
-  }
-  
-  return null;
-};
-
-/**
- * Derives a 256-bit AES-GCM Key-Encryption-Key from a user passphrase.
- * Uses PBKDF2 with a random salt and 250 000 iterations of SHA-256.
- */
-async function deriveKekFromPassphrase(
-  passphrase: string,
-  salt: ArrayBuffer,
-): Promise<CryptoKey> {
-  const subtle = getSubtle();
-  if (!subtle) throw new Error("WebCrypto API not supported in this environment");
-
-  const passphraseKey = await subtle.importKey(
-    "raw",
-    new TextEncoder().encode(passphrase),
-    "PBKDF2",
-    false,
-    ["deriveKey"],
-  );
-
-  return await subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt,
-      iterations: PBKDF2_ITERATIONS,
-      hash: "SHA-256",
-    },
-    passphraseKey,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"],
-  );
-}
-
-/**
- * Wraps raw key bytes with a passphrase-derived key using AES-256-GCM.
- */
-async function wrapKey(
-  rawKeyBase64: string,
-  kek: CryptoKey,
-): Promise<{ iv: string; ciphertext: string }> {
-  const subtle = getSubtle();
-  if (!subtle) throw new Error("WebCrypto API not supported in this environment");
-
-  const ivBytes = await Crypto.getRandomBytesAsync(12);
-  const iv = ivBytes.buffer as ArrayBuffer;
-  const rawKeyBuffer = base64ToBuffer(rawKeyBase64);
-
-  const cipherBuffer = await subtle.encrypt(
-    { name: "AES-GCM", iv },
-    kek,
-    rawKeyBuffer,
-  );
-
-  return {
-    iv: bufferToBase64(iv),
-    ciphertext: bufferToBase64(cipherBuffer),
-  };
-}
-
-/**
- * Unwraps a passphrase-encrypted master key.
- */
-async function unwrapKey(
-  ivBase64: string,
-  ciphertextBase64: string,
-  kek: CryptoKey,
-): Promise<string> {
-  const subtle = getSubtle();
-  if (!subtle) throw new Error("WebCrypto API not supported in this environment");
-
-  const iv = base64ToBuffer(ivBase64);
-  const cipherBuffer = base64ToBuffer(ciphertextBase64);
-
-  const plainBuffer = await subtle.decrypt(
-    { name: "AES-GCM", iv },
-    kek,
-    cipherBuffer,
-  );
-
-  return bufferToBase64(plainBuffer);
-}
+const BUNDLE_VERSION = 3; // Upgraded version for SJCL/CryptoJS
+const PBKDF2_ITERATIONS = 10000; // Adjusted for JS performance balance
 
 // ---------------------------------------------------------------------------
 // Backup bundle type
@@ -165,7 +25,7 @@ interface BackupBundle {
   exportedAt: string;
   kdf: {
     algorithm: "PBKDF2";
-    hash: "SHA-256";
+    hash: "SHA256";
     iterations: number;
     salt: string;
   };
@@ -181,7 +41,6 @@ interface BackupBundle {
 // ---------------------------------------------------------------------------
 
 export class DatabaseBackupService {
-  /** All user-facing strings come from translations — no hardcoded text. */
   private t(lang: Language) {
     return translations[lang];
   }
@@ -191,14 +50,17 @@ export class DatabaseBackupService {
     return `${FileSystem.documentDirectory}SQLite/${DB_NAME}`;
   }
 
-  // -------------------------------------------------------------------------
-  // Export
-  // -------------------------------------------------------------------------
-
   /**
-   * Exports a password-protected .smb backup bundle.
-   * All Alert messages appear in the user's selected language.
+   * Derives a KEK (Key Encryption Key) from a passphrase using PBKDF2.
    */
+  private deriveKek(passphrase: string, salt: string): CryptoJS.lib.WordArray {
+    return CryptoJS.PBKDF2(passphrase, CryptoJS.enc.Base64.parse(salt), {
+      keySize: 256 / 32,
+      iterations: PBKDF2_ITERATIONS,
+      hasher: CryptoJS.algo.SHA256,
+    });
+  }
+
   async exportSecureBackup(
     passphrase: string,
     language: Language,
@@ -206,59 +68,53 @@ export class DatabaseBackupService {
     const { backup, common } = this.t(language);
 
     try {
-      // 1. Verify the DB file exists
       const fileInfo = await FileSystem.getInfoAsync(this.dbPath);
       if (!fileInfo.exists) {
         Alert.alert(common.error, backup.noDatabase);
         return;
       }
 
-      // 2. Checkpoint WAL and Read the SQLite file as base64
       await db.execAsync("PRAGMA wal_checkpoint(FULL);");
       const dbBase64 = await FileSystem.readAsStringAsync(this.dbPath, {
         // @ts-ignore
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // 3. Ensure SubtleCrypto is available in this environment
-      if (!getSubtle()) {
-        Alert.alert(
-          common.error,
-          "Los respaldos seguros no son compatibles en este entorno (ej. Expo Go). Requiere una versión completa con WebCrypto."
-        );
-        return;
-      }
+      // 1. Generate random salt
+      const salt = CryptoJS.lib.WordArray.random(128 / 8).toString(CryptoJS.enc.Base64);
+      
+      // 2. Derive KEK
+      const kek = this.deriveKek(passphrase, salt);
 
-      // 4. Derive KEK from passphrase
-      const saltBytes = await Crypto.getRandomBytesAsync(32);
-      const salt = saltBytes.buffer as ArrayBuffer;
-      const kek = await deriveKekFromPassphrase(passphrase, salt);
-
-      // 4. Get and wrap the master encryption key
+      // 3. Get master key and wrap it
       const rawKeyBase64 = await encryptionService.exportRawMasterKey();
-      const { iv: keyIv, ciphertext: keyCiphertext } = await wrapKey(
-        rawKeyBase64,
-        kek,
-      );
+      
+      // Encrypt the master key using AES
+      const iv = CryptoJS.lib.WordArray.random(128 / 8);
+      const encrypted = CryptoJS.AES.encrypt(rawKeyBase64, kek, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      });
 
-      // 5. Build bundle
       const bundle: BackupBundle = {
         version: BUNDLE_VERSION,
         app: "simple-manager",
         exportedAt: new Date().toISOString(),
         kdf: {
           algorithm: "PBKDF2",
-          hash: "SHA-256",
+          hash: "SHA256",
           iterations: PBKDF2_ITERATIONS,
-          salt: bufferToBase64(salt),
+          salt: salt,
         },
-        encKey: { iv: keyIv, ciphertext: keyCiphertext },
+        encKey: {
+          iv: iv.toString(CryptoJS.enc.Base64),
+          ciphertext: encrypted.toString(),
+        },
         database: dbBase64,
       };
 
       const bundleJson = JSON.stringify(bundle);
-
-      // 6. Write to cache and share
       const backupDate = new Date().toISOString().split("T")[0];
       const exportFileName = `simple_manager_${backupDate}${BACKUP_EXTENSION}`;
       // @ts-ignore
@@ -269,8 +125,7 @@ export class DatabaseBackupService {
         encoding: FileSystem.EncodingType.UTF8,
       });
 
-      const sharingAvailable = await Sharing.isAvailableAsync();
-      if (!sharingAvailable) {
+      if (!(await Sharing.isAvailableAsync())) {
         Alert.alert(common.attention, backup.sharingUnavailable);
         return;
       }
@@ -285,13 +140,6 @@ export class DatabaseBackupService {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Import
-  // -------------------------------------------------------------------------
-
-  /**
-   * Imports a .smb backup bundle and restores the database and encryption key.
-   */
   async importSecureBackup(
     fileUri: string,
     passphrase: string,
@@ -300,98 +148,71 @@ export class DatabaseBackupService {
     const { backup, common } = this.t(language);
 
     try {
-      // 1. Read bundle
       const bundleJson = await FileSystem.readAsStringAsync(fileUri, {
         // @ts-ignore
         encoding: FileSystem.EncodingType.UTF8,
       });
 
-      let bundle: BackupBundle;
-      try {
-        bundle = JSON.parse(bundleJson);
-      } catch {
-        Alert.alert(backup.invalidFileTitle, backup.invalidFile);
-        return;
-      }
+      const bundle: BackupBundle = JSON.parse(bundleJson);
 
-      if (
-        bundle.version !== BUNDLE_VERSION ||
-        bundle.app !== "simple-manager"
-      ) {
+      if (bundle.app !== "simple-manager") {
         Alert.alert(common.attention, backup.incompatibleVersion);
         return;
       }
 
-      if (!getSubtle()) {
-        Alert.alert(
-          common.error,
-          "Restauración no compatible en Expo Go sin WebCrypto nativo."
-        );
+      // Handle legacy versions if needed, but here we focus on fixing current
+      if (bundle.version < 3) {
+        Alert.alert(common.error, "Este respaldo es de una versión antigua no compatible.");
         return;
       }
 
-      // 2. Derive KEK
-      const salt = base64ToBuffer(bundle.kdf.salt);
-      let kek: CryptoKey;
-      try {
-        kek = await deriveKekFromPassphrase(passphrase, salt);
-      } catch {
-        Alert.alert(common.error, backup.processPasswordError);
-        return;
-      }
+      // 1. Derive KEK
+      const kek = this.deriveKek(passphrase, bundle.kdf.salt);
 
-      // 3. Unwrap master key (auth tag failure = wrong password)
+      // 2. Unwrap key
       let rawKeyBase64: string;
       try {
-        rawKeyBase64 = await unwrapKey(
-          bundle.encKey.iv,
-          bundle.encKey.ciphertext,
-          kek,
-        );
+        const decrypted = CryptoJS.AES.decrypt(bundle.encKey.ciphertext, kek, {
+          iv: CryptoJS.enc.Base64.parse(bundle.encKey.iv),
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        });
+        rawKeyBase64 = decrypted.toString(CryptoJS.enc.Utf8);
+        
+        if (!rawKeyBase64) throw new Error("Decryption failed");
       } catch {
         Alert.alert(backup.wrongPassword, backup.wrongPasswordMsg);
         return;
       }
 
-      // 4. Restore the SQLite database file
-      // Close the current connection to avoid database corruption
+      // 3. Restore DB
       try {
         db.closeSync();
-      } catch (e) {
-        console.warn("[DatabaseBackupService] DB already closed or error:", e);
-      }
+      } catch {}
 
       // @ts-ignore
       const dbDirectory = `${FileSystem.documentDirectory}SQLite`;
-      const dirInfo = await FileSystem.getInfoAsync(dbDirectory);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(dbDirectory, {
-          intermediates: true,
-        });
-      }
+      await FileSystem.makeDirectoryAsync(dbDirectory, { intermediates: true });
 
       await FileSystem.writeAsStringAsync(this.dbPath, bundle.database, {
         // @ts-ignore
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Clear WAL and SHM files to prevent the old journal from applying to the new DB file
       try {
         await FileSystem.deleteAsync(`${this.dbPath}-wal`, { idempotent: true });
         await FileSystem.deleteAsync(`${this.dbPath}-shm`, { idempotent: true });
-      } catch (e) {}
+      } catch {}
 
-      // 5. Restore master key into SecureStore
+      // 4. Restore Master Key
       await encryptionService.importRawMasterKey(rawKeyBase64);
 
       Alert.alert(backup.importSuccess, backup.importSuccessMsg, [
-        { 
+        {
           text: common.understood,
           onPress: () => {
-            if (Platform.OS === "android") {
-              BackHandler.exitApp();
-            }
-          }
+            if (Platform.OS === "android") BackHandler.exitApp();
+          },
         },
       ]);
     } catch (error) {
@@ -400,16 +221,8 @@ export class DatabaseBackupService {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // File picker helper
-  // -------------------------------------------------------------------------
-
-  /**
-   * Opens the document picker and returns the URI of the selected .smb file.
-   */
   async pickBackupFile(language: Language): Promise<string | null> {
     const { backup } = this.t(language);
-
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["*/*"],
@@ -417,23 +230,16 @@ export class DatabaseBackupService {
       });
 
       if (result.canceled) return null;
-
       const file = result.assets[0];
 
-      if (!file.name.endsWith(BACKUP_EXTENSION) && !file.name.endsWith(".db")) {
+      if (!file.name.endsWith(BACKUP_EXTENSION)) {
         Alert.alert(backup.invalidFileTitle, backup.invalidFileMsg);
-        return null;
-      }
-
-      // Legacy .db files no longer supported
-      if (file.name.endsWith(".db")) {
-        Alert.alert(backup.legacyFormatTitle, backup.legacyFormatMsg);
         return null;
       }
 
       return file.uri;
     } catch (error) {
-      console.error("[DatabaseBackupService] file pick failed:", error);
+      console.error("[DatabaseBackupService] pick failed:", error);
       return null;
     }
   }
