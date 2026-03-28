@@ -21,30 +21,25 @@ export class ExpoNotificationService implements INotificationService {
   }
 
   async requestPermissionsAsync(): Promise<boolean> {
-    let { status } = await Notifications.getPermissionsAsync();
-    let finalStatus = status;
+    try {
+      let { status } = await Notifications.getPermissionsAsync();
+      let finalStatus = status;
 
-    if (status !== "granted") {
-      const { status: newStatus } =
-        await Notifications.requestPermissionsAsync();
-      finalStatus = newStatus;
-    }
+      if (status !== "granted") {
+        const { status: newStatus } =
+          await Notifications.requestPermissionsAsync();
+        finalStatus = newStatus;
+      }
 
-    if (finalStatus !== "granted") {
-      console.error("Failed to get permission for local notification!");
+      if (finalStatus !== "granted") {
+        console.error("Failed to get permission for local notification!");
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn("Notification permissions check failed (likely Expo Go limitations):", e);
       return false;
     }
-
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF231F7C",
-      });
-    }
-
-    return true;
   }
 
   async scheduleNotificationAsync(

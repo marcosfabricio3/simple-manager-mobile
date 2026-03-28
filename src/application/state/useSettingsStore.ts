@@ -9,6 +9,8 @@ interface SettingsState {
   biometricLockEnabled: boolean;
   language: "en" | "es";
   hasSeenOnboarding: boolean;
+  freeBillingEnabled: boolean; // Whether the flexible billing mode is active
+  freeBillingPaymentMethods: string[]; // List of payment methods that require manual billing choice
   updateSettings: (settings: Partial<SettingsState>) => void;
   setHasSeenOnboarding: () => void;
 }
@@ -34,6 +36,8 @@ export const useSettingsStore = create<SettingsState>()(
       biometricLockEnabled: true,
       language: "es",
       hasSeenOnboarding: false,
+      freeBillingEnabled: false,
+      freeBillingPaymentMethods: [],
       updateSettings: (settings) => set((state) => ({ ...state, ...settings })),
       setHasSeenOnboarding: () => set({ hasSeenOnboarding: true }),
     }),

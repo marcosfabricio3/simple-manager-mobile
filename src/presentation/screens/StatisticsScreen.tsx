@@ -3,7 +3,7 @@ import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { useStatistics } from "@/src/presentation/hooks/useStatistics";
 import { useI18n } from "@/src/presentation/translations/useI18n";
 import { MaterialIcons } from "@expo/vector-icons";
-import React from "react";
+import React, { useState } from "react";
 import {
     ActivityIndicator,
     Platform,
@@ -13,8 +13,13 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Alert,
 } from "react-native";
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
+import { PdfReportService } from "@/src/application/services/PdfReportService";
+import { XlsxReportService } from "@/src/application/services/XlsxReportService";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 // ---------------------------------------------------------------------------
 // Formatters
@@ -231,6 +236,8 @@ export default function StatisticsScreen() {
   const ts = t.statistics;
   const paddingTop = useSafeTopPadding();
 
+  const [exporting, setExporting] = useState(false);
+
   const {
     stats,
     loading,
@@ -238,9 +245,54 @@ export default function StatisticsScreen() {
     isCurrentMonth,
     goToPreviousMonth,
     goToNextMonth,
+    getYearlyAppointments,
   } = useStatistics();
 
   const monthLabel = formatMonthYear(month, language);
+
+  const handleExport = async (type: "pdf" | "xlsx", period: "month" | "year") => {
+    try {
+      setExporting(true);
+      const pdfService = new PdfReportService();
+      const xlsxService = new XlsxReportService();
+
+      let appointments = stats.appointments;
+      let title = `${period === "month" ? ts.monthlyReport : ts.yearlyReport} - ${
+        period === "month" 
+          ? formatMonthYear(month, language) 
+          : month.getFullYear().toString()
+      }`;
+
+      if (period === "year") {
+        appointments = await getYearlyAppointments();
+      }
+
+      if (type === "pdf") {
+        await pdfService.generateReport(appointments, title, t, language);
+      } else {
+        await xlsxService.generateReport(appointments, title, t, language);
+      }
+    } catch (error) {
+      console.error("Export failed:", error);
+      Alert.alert(t.common.error, "Error al generar el reporte.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const showExportMenu = () => {
+    Alert.alert(
+      ts.exportReport,
+      "",
+      [
+        { text: `${ts.monthlyReport} (PDF)`, onPress: () => handleExport("pdf", "month") },
+        { text: `${ts.monthlyReport} (XLSX)`, onPress: () => handleExport("xlsx", "month") },
+        { text: `${ts.yearlyReport} (PDF)`, onPress: () => handleExport("pdf", "year") },
+        { text: `${ts.yearlyReport} (XLSX)`, onPress: () => handleExport("xlsx", "year") },
+        { text: t.common.cancel, style: "cancel" },
+      ]
+    );
+  };
 
   return (
     <ScrollView
@@ -260,6 +312,17 @@ export default function StatisticsScreen() {
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           {ts.title}
         </Text>
+        <TouchableOpacity 
+          style={[styles.exportBtn, { backgroundColor: colors.primary }]}
+          onPress={showExportMenu}
+          disabled={exporting}
+        >
+          {exporting ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <MaterialIcons name="file-download" size={20} color="#FFF" />
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Month navigation */}
@@ -419,6 +482,69 @@ export default function StatisticsScreen() {
             )}
           </View>
 
+          {/* Caja Section */}
+          <Text style={[styles.sectionTitle, { color: colors.subtext }]}>
+            {ts.caja}
+          </Text>
+          <View style={[styles.cajaCard, { backgroundColor: colors.card }]}>
+            {stats.appointments.length === 0 ? (
+              <Text style={[styles.emptyText, { color: colors.subtext }]}>
+                {ts.noData}
+              </Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.tableContainer}>
+                  <View style={[styles.tableHeader, { borderBottomColor: colors.border }]}>
+                    <Text style={[styles.columnHeader, { color: colors.subtext, width: 80 }]}>{ts.tableFecha}</Text>
+                    <Text style={[styles.columnHeader, { color: colors.subtext, width: 120 }]}>{ts.tableCliente}</Text>
+                    <Text style={[styles.columnHeader, { color: colors.subtext, width: 140 }]}>{ts.tableServicios}</Text>
+                    <Text style={[styles.columnHeader, { color: colors.subtext, width: 100, textAlign: 'right' }]}>{ts.tableImporte}</Text>
+                    <Text style={[styles.columnHeader, { color: colors.subtext, width: 120, marginLeft: 15 }]}>{ts.tableFormaPago}</Text>
+                    <Text style={[styles.columnHeader, { color: colors.subtext, width: 80, textAlign: 'center' }]}>{ts.tableFacturado}</Text>
+                    <Text style={[styles.columnHeader, { color: colors.subtext, width: 90, textAlign: 'right' }]}>{ts.tablePagoPendiente}</Text>
+                  </View>
+                  {stats.appointments
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                    .map((appt, i) => {
+                      const isPaid = appt.paymentStatus === 'paid';
+                      const methodKey = `method_${appt.paymentMethod?.replace("ó", "o").replace("/", "_").toLowerCase()}`;
+                      const methodStr = (t.appointments as any)[methodKey] || t.appointments.method_other || appt.paymentMethod || "-";
+
+                      return (
+                        <View key={appt.id} style={[styles.tableRow, { borderBottomColor: colors.border + '40' }]}>
+                          <Text style={[styles.cell, { color: colors.text, width: 80 }]}>
+                            {format(new Date(appt.date), "dd/MM/yy", { locale: es })}
+                          </Text>
+                          <Text style={[styles.cell, { color: colors.text, width: 120 }]} numberOfLines={1}>
+                            {appt.clientName}
+                          </Text>
+                          <Text style={[styles.cell, { color: colors.text, width: 140 }]} numberOfLines={2}>
+                            {appt.services.map(s => s.name).join(", ")}
+                          </Text>
+                           <Text style={[styles.cell, { color: colors.text, width: 100, textAlign: 'right', fontWeight: '700' }]}>
+                            {formatCurrency(appt.totalPrice, t.common.currency)}
+                          </Text>
+                          <Text style={[styles.cell, { color: colors.text, width: 120, marginLeft: 15 }]} numberOfLines={1}>
+                            {methodStr}
+                          </Text>
+                          <View style={{ width: 80, alignItems: 'center' }}>
+                            <MaterialIcons 
+                              name={isPaid && appt.isFacturado ? "check-circle" : "cancel"} 
+                              size={18} 
+                              color={isPaid && appt.isFacturado ? colors.success : colors.danger} 
+                            />
+                          </View>
+                          <Text style={[styles.cell, { color: isPaid ? colors.success : colors.danger, width: 90, textAlign: 'right', fontWeight: '800' }]}>
+                            {isPaid ? "-" : formatCurrency(appt.totalPrice, t.common.currency)}
+                          </Text>
+                        </View>
+                      );
+                  })}
+                </View>
+              </ScrollView>
+            )}
+          </View>
+
           {/* Total Clients */}
           <View style={[styles.clientsCard, { backgroundColor: colors.card }]}>
             <View
@@ -464,6 +590,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 24,
+  },
+  exportBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   monthNav: {
     flexDirection: "row",
@@ -533,10 +671,39 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     gap: 14,
   },
+  cajaCard: {
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginBottom: 24,
+  },
+  tableContainer: {
+    paddingHorizontal: 16,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    marginBottom: 5,
+  },
+  columnHeader: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    alignItems: 'center',
+  },
+  cell: {
+    fontSize: 12,
+    marginRight: 8,
+  },
   emptyText: {
     fontSize: 14,
     textAlign: "center",
-    paddingVertical: 8,
+    paddingVertical: 16,
   },
   progressRow: { gap: 6 },
   progressLabelRow: {

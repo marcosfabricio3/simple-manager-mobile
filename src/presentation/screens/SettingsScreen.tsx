@@ -4,6 +4,7 @@ import { DatabaseBackupService } from "@/src/application/services/DatabaseBackup
 import { PdfReportService } from "@/src/application/services/PdfReportService";
 import { useSettingsStore } from "@/src/application/state/useSettingsStore";
 import { db } from "@/src/infrastructure/database/database";
+import { BillingMethodsModal } from "@/src/presentation/components/BillingMethodsModal";
 import { PassphraseModal } from "@/src/presentation/components/PassphraseModal";
 import { SettingsItem } from "@/src/presentation/components/SettingsItem";
 import { useI18n } from "@/src/presentation/translations/useI18n";
@@ -27,6 +28,8 @@ export default function SettingsScreen() {
     notificationAdvanceMin,
     biometricLockEnabled,
     language,
+    freeBillingEnabled,
+    freeBillingPaymentMethods,
     updateSettings,
   } = useSettingsStore();
 
@@ -46,6 +49,7 @@ export default function SettingsScreen() {
     pendingFileUri?: string;
     loading: boolean;
   }>({ visible: false, mode: "export", loading: false });
+  const [billingMethodsModalVisible, setBillingMethodsModalVisible] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -63,7 +67,9 @@ export default function SettingsScreen() {
 
   const handleGenerateReport = async () => {
     const pdfService = new PdfReportService();
-    await pdfService.generateMonthlyReport();
+    // In Settings, this is typically a generalized report trigger
+    // Using empty list as placeholder since it's a generic action button
+    await pdfService.generateReport([], t.settings.exportPdf, t, language);
   };
 
   const handleExportDb = () => {
@@ -107,6 +113,10 @@ export default function SettingsScreen() {
 
   const handlePassphraseCancel = () => {
     setPassphraseModal({ visible: false, mode: "export", loading: false });
+  };
+
+  const handleFreeBillingMethodsPress = () => {
+    setBillingMethodsModalVisible(true);
   };
 
   const handleWipeData = () => {
@@ -242,6 +252,15 @@ export default function SettingsScreen() {
             onValueChange={(val) =>
               updateSettings({ notificationsEnabled: val as boolean })
             }
+            hideSeparator={true}
+          />
+          <SettingsItem
+            icon="none"
+            title={t.settings.reminderAdvance}
+            type="select"
+            value={formatAdvance(notificationAdvanceMin)}
+            onPress={handleAdvancePress}
+            disabled={!notificationsEnabled}
           />
           <SettingsItem
             icon="lock.fill"
@@ -253,15 +272,25 @@ export default function SettingsScreen() {
               updateSettings({ biometricLockEnabled: val as boolean })
             }
           />
-          {notificationsEnabled && (
-            <SettingsItem
-              icon="clock.fill"
-              title={t.settings.reminderAdvance}
-              type="select"
-              value={formatAdvance(notificationAdvanceMin)}
-              onPress={handleAdvancePress}
-            />
-          )}
+          <SettingsItem
+            icon="doc.plaintext.fill"
+            title={t.settings.freeBilling}
+            subtitle={t.settings.freeBillingSubtitle}
+            type="switch"
+            value={freeBillingEnabled}
+            onValueChange={(val) =>
+              updateSettings({ freeBillingEnabled: val as boolean })
+            }
+            hideSeparator={true}
+          />
+          <SettingsItem
+            icon="none"
+            title={t.settings.selectBillingMethods}
+            type="select"
+            value={`${freeBillingPaymentMethods.length} seleccionados`}
+            onPress={handleFreeBillingMethodsPress}
+            disabled={!freeBillingEnabled}
+          />
         </View>
 
         {/* ----- Advanced Data ----- */}
@@ -303,6 +332,11 @@ export default function SettingsScreen() {
         loading={passphraseModal.loading}
         onConfirm={handlePassphraseConfirm}
         onCancel={handlePassphraseCancel}
+      />
+
+      <BillingMethodsModal
+        visible={billingMethodsModalVisible}
+        onClose={() => setBillingMethodsModalVisible(false)}
       />
     </>
   );

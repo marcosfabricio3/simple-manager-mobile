@@ -117,6 +117,7 @@ export class AppointmentService {
       notes: notes?.trim() || "",
       seriesId,
       recurrence,
+      isFacturado: true, // Default to true, will be updated if needed
       createdAt: now,
       updatedAt: now,
       isDeleted: false,
@@ -162,6 +163,7 @@ export class AppointmentService {
       notes: notes,
       seriesId,
       recurrence,
+      isFacturado: true, // Default to true
       createdAt: now,
       updatedAt: now,
       isDeleted: false,
@@ -223,8 +225,25 @@ export class AppointmentService {
     }
   }
 
-  async updatePaymentStatus(id: string, status: "paid" | "unpaid", paymentMethod?: string, paymentMethodDetails?: string) {
+  async updatePaymentStatus(id: string, status: "paid" | "unpaid", paymentMethod?: string, paymentMethodDetails?: string, isFacturado: boolean = true) {
     await this.appointmentRepo.updatePaymentStatus(id, status, paymentMethod, paymentMethodDetails);
+    
+    // Explicitly update isFacturado using the repo's specialized method or find and update
+    const apptRaw = await this.appointmentRepo.findById(id);
+    if (apptRaw) {
+      await this.appointmentRepo.update(
+        { 
+          ...apptRaw, 
+          isFacturado, 
+          paymentStatus: status, 
+          paymentMethod: (paymentMethod as any) || apptRaw.paymentMethod, 
+          paymentMethodDetails: paymentMethodDetails || apptRaw.paymentMethodDetails,
+          updatedAt: new Date().toISOString()
+        }, 
+        apptRaw.services.map(s => ({ serviceId: s.id, price: s.price }))
+      );
+    }
+
     const appt = await this.appointmentRepo.findById(id);
     if (appt) {
       await this.evaluateClientNewStatus(appt.clientId);
@@ -267,6 +286,7 @@ export class AppointmentService {
       notes,
       seriesId: appt.seriesId,
       recurrence: appt.recurrence,
+      isFacturado: appt.isFacturado,
       createdAt: appt.createdAt,
       updatedAt: new Date().toISOString(),
       isDeleted: false,

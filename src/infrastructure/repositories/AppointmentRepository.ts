@@ -28,6 +28,7 @@ interface AppointmentJoinedRow {
   recurrence: "none" | "weekly" | "biweekly" | "monthly";
   paymentMethod?: string;
   paymentMethodDetails?: string;
+  isFacturado: number;
   clientName: string;
   clientPhone?: string;
   clientIsNew: number;
@@ -44,8 +45,8 @@ export class AppointmentRepository {
       // 1. Insert Appointment
       await db.runAsync(
         `INSERT INTO appointments (
-            id, clientId, date, durationMinutes, status, paymentStatus, paymentMethod, paymentMethodDetails, notes, seriesId, recurrence, createdAt, updatedAt, isDeleted
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, clientId, date, durationMinutes, status, paymentStatus, paymentMethod, paymentMethodDetails, isFacturado, notes, seriesId, recurrence, createdAt, updatedAt, isDeleted
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           appointment.id,
           appointment.clientId,
@@ -55,6 +56,7 @@ export class AppointmentRepository {
           appointment.paymentStatus,
           appointment.paymentMethod || null,
           appointment.paymentMethodDetails || null,
+          appointment.isFacturado ? 1 : 0,
           appointment.notes || null,
           appointment.seriesId,
           appointment.recurrence,
@@ -149,6 +151,7 @@ export class AppointmentRepository {
           clientIsNew: Boolean(r.clientIsNew),
           seriesId: r.seriesId,
           recurrence: r.recurrence,
+          isFacturado: Boolean(r.isFacturado),
           services,
           totalPrice,
         };
@@ -226,6 +229,7 @@ export class AppointmentRepository {
           clientIsNew: Boolean(r.clientIsNew),
           seriesId: r.seriesId,
           recurrence: r.recurrence,
+          isFacturado: Boolean(r.isFacturado),
           services,
           totalPrice,
         };
@@ -291,6 +295,7 @@ export class AppointmentRepository {
           clientIsNew: Boolean(r.clientIsNew),
           seriesId: r.seriesId,
           recurrence: r.recurrence,
+          isFacturado: Boolean(r.isFacturado),
           services,
           totalPrice,
         };
@@ -364,6 +369,7 @@ export class AppointmentRepository {
           clientIsNew: Boolean(r.clientIsNew),
           seriesId: r.seriesId,
           recurrence: r.recurrence,
+          isFacturado: Boolean(r.isFacturado),
           services,
           totalPrice,
         };
@@ -459,6 +465,7 @@ export class AppointmentRepository {
           clientIsNew: Boolean(row.clientIsNew),
           seriesId: row.seriesId,
           recurrence: row.recurrence,
+          isFacturado: row.isFacturado === 1,
           services: [],
           totalPrice: 0,
         });
@@ -508,7 +515,7 @@ export class AppointmentRepository {
       // 1. Update Appointment
       await db.runAsync(
         `UPDATE appointments 
-         SET clientId = ?, date = ?, durationMinutes = ?, status = ?, paymentStatus = ?, paymentMethod = ?, paymentMethodDetails = ?, notes = ?, seriesId = ?, recurrence = ?, updatedAt = ?, isDeleted = ?
+         SET clientId = ?, date = ?, durationMinutes = ?, status = ?, paymentStatus = ?, paymentMethod = ?, paymentMethodDetails = ?, isFacturado = ?, notes = ?, seriesId = ?, recurrence = ?, updatedAt = ?, isDeleted = ?
          WHERE id = ?`,
         [
           appointment.clientId,
@@ -518,6 +525,7 @@ export class AppointmentRepository {
           appointment.paymentStatus,
           appointment.paymentMethod || null,
           appointment.paymentMethodDetails || null,
+          appointment.isFacturado ? 1 : 0,
           appointment.notes || null,
           appointment.seriesId,
           appointment.recurrence,

@@ -13,6 +13,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useI18n } from "../translations/useI18n";
 
@@ -55,88 +56,88 @@ export function PaymentMethodModal({ visible, onClose, onConfirm }: Props) {
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.overlay}
       >
-        <TouchableOpacity 
-          activeOpacity={1} 
-          style={styles.backdrop} 
-          onPress={onClose} 
-        />
-        <View style={[styles.content, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={styles.header}>
-            <Text style={[styles.title, { color: colors.text }]}>
-              {t.appointments.selectPaymentMethod}
-            </Text>
-            <TouchableOpacity onPress={onClose}>
-              <MaterialIcons name="close" size={24} color={colors.subtext} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.methodList} showsVerticalScrollIndicator={false}>
-            {methods.map((method) => (
-              <TouchableOpacity
-                key={method.id}
-                style={[
-                  styles.methodItem,
-                  { borderColor: colors.border },
-                  selectedMethod === method.id && { 
-                    backgroundColor: colors.primary + "10",
-                    borderColor: colors.primary 
-                  }
-                ]}
-                onPress={() => setSelectedMethod(method.id)}
-              >
-                <View style={styles.methodInfo}>
-                  <MaterialIcons 
-                    name={method.icon as any} 
-                    size={22} 
-                    color={selectedMethod === method.id ? colors.primary : colors.subtext} 
-                  />
-                  <Text style={[
-                    styles.methodLabel, 
-                    { color: colors.text },
-                    selectedMethod === method.id && { color: colors.primary, fontWeight: "700" }
-                  ]}>
-                    {method.label}
-                  </Text>
-                </View>
-                {selectedMethod === method.id && (
-                  <MaterialIcons name="check-circle" size={20} color={colors.primary} />
-                )}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
+        
+        <TouchableWithoutFeedback>
+          <View style={[styles.content, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.header}>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {t.appointments.selectPaymentMethod}
+              </Text>
+              <TouchableOpacity onPress={onClose}>
+                <MaterialIcons name="close" size={24} color={colors.subtext} />
               </TouchableOpacity>
-            ))}
+            </View>
 
-            {selectedMethod === "other" && (
-              <View style={styles.otherContainer}>
-                <TextInput
-                  placeholder={t.appointments.method_other_placeholder}
-                  placeholderTextColor={colors.subtext}
-                  value={otherDetails}
-                  onChangeText={setOtherDetails}
+            <ScrollView style={styles.methodList} showsVerticalScrollIndicator={false}>
+              {methods.map((method) => (
+                <TouchableOpacity
+                  key={method.id}
                   style={[
-                    styles.input,
-                    {
-                      borderColor: colors.border,
-                      backgroundColor: darkMode ? colors.secondaryBackground : "#FAFAFA",
-                      color: colors.text,
-                    },
+                    styles.methodItem,
+                    { borderColor: colors.border },
+                    selectedMethod === method.id && { 
+                      backgroundColor: colors.primary + "10",
+                      borderColor: colors.primary 
+                    }
                   ]}
-                  autoFocus
-                />
-              </View>
-            )}
-          </ScrollView>
+                  onPress={() => setSelectedMethod(method.id)}
+                >
+                  <View style={styles.methodInfo}>
+                    <MaterialIcons 
+                      name={method.icon as any} 
+                      size={22} 
+                      color={selectedMethod === method.id ? colors.primary : colors.subtext} 
+                    />
+                    <Text style={[
+                      styles.methodLabel, 
+                      { color: colors.text },
+                      selectedMethod === method.id && { color: colors.primary, fontWeight: "700" }
+                    ]}>
+                      {method.label}
+                    </Text>
+                  </View>
+                  {selectedMethod === method.id && (
+                    <MaterialIcons name="check-circle" size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
 
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.confirmBtn, { backgroundColor: colors.primary }]}
-              onPress={handleConfirm}
-            >
-              <Text style={styles.confirmBtnText}>{t.common.confirm}</Text>
-            </TouchableOpacity>
+              {selectedMethod === "other" && (
+                <View style={styles.otherContainer}>
+                  <TextInput
+                    placeholder={t.appointments.method_other_placeholder}
+                    placeholderTextColor={colors.subtext}
+                    value={otherDetails}
+                    onChangeText={setOtherDetails}
+                    style={[
+                      styles.input,
+                      {
+                        borderColor: colors.border,
+                        backgroundColor: darkMode ? colors.secondaryBackground : "#FAFAFA",
+                        color: colors.text,
+                      },
+                    ]}
+                  />
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={styles.footer}>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: colors.primary }]}
+                onPress={handleConfirm}
+              >
+                <Text style={styles.confirmBtnText}>{t.common.confirm}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </Modal>
   );

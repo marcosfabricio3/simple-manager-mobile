@@ -63,7 +63,7 @@ export default function AppointmentsListScreen() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
   const [viewMode, setViewMode] = useState<"day" | "month">("day");
-  const [pendingPaymentAppointment, setPendingPaymentAppointment] = useState<AppointmentWithDetails | null>(null);
+  const { freeBillingEnabled, freeBillingPaymentMethods } = useSettingsStore();
 
   useFocusEffect(
     useCallback(() => {
@@ -372,11 +372,7 @@ export default function AppointmentsListScreen() {
                     {
                       text: appointment.paymentStatus === "paid" ? t.clientProfile.markAsUnpaid : t.clientProfile.markAsPaid,
                       onPress: () => {
-                        if (appointment.paymentStatus === "unpaid") {
-                          setPendingPaymentAppointment(appointment);
-                        } else {
-                          togglePaymentStatus(appointment, () => loadMonth(currentYear, currentMonth, true));
-                        }
+                        togglePaymentStatus(appointment, () => loadMonth(currentYear, currentMonth, true));
                       }
                     },
                     {
@@ -428,16 +424,6 @@ export default function AppointmentsListScreen() {
             />
           )}
         </View>
-
-        <PaymentMethodModal
-          visible={!!pendingPaymentAppointment}
-          onClose={() => setPendingPaymentAppointment(null)}
-          onConfirm={(method, details) => {
-            if (pendingPaymentAppointment) {
-              togglePaymentStatus(pendingPaymentAppointment, () => loadMonth(currentYear, currentMonth, true), method, details);
-            }
-          }}
-        />
       </View>
     </CalendarProvider>
   );

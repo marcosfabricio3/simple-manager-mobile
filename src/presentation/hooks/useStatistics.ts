@@ -30,6 +30,8 @@ export interface MonthlyStats {
   topServices: ServiceStat[];
   // Payment methods
   paymentMethods: PaymentMethodStat[];
+  // Raw Data for "Caja"
+  appointments: AppointmentWithDetails[];
   // Global
   totalClients: number;
 }
@@ -44,6 +46,7 @@ const EMPTY_STATS: MonthlyStats = {
   cancelled: 0,
   topServices: [],
   paymentMethods: [],
+  appointments: [],
   totalClients: 0,
 };
 
@@ -163,6 +166,7 @@ export function useStatistics() {
           cancelled,
           topServices,
           paymentMethods,
+          appointments: appointments.filter(a => a.status !== "cancelled" && new Date(a.date) <= new Date()),
           totalClients,
         });
       } catch (err) {
@@ -191,13 +195,23 @@ export function useStatistics() {
     month.getMonth() === new Date().getMonth() &&
     month.getFullYear() === new Date().getFullYear();
 
+  const getYearlyAppointments = useCallback(async () => {
+    const start = new Date(month.getFullYear(), 0, 1);
+    const end = new Date(month.getFullYear(), 11, 31, 23, 59, 59);
+    return (await apptService.listBetweenDates(
+      start.toISOString(),
+      end.toISOString()
+    )) as AppointmentWithDetails[];
+  }, [apptService, month]);
+
   return {
     stats,
     loading,
     month,
-    isCurrentMonth,
     goToPreviousMonth,
     goToNextMonth,
+    isCurrentMonth,
     refresh: () => load(month),
+    getYearlyAppointments,
   };
 }

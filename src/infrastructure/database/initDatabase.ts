@@ -52,6 +52,7 @@ export function initDatabase() {
             createdAt TEXT NOT NULL,
             updatedAt TEXT NOT NULL,
             isDeleted INTEGER NOT NULL,
+            isFacturado INTEGER NOT NULL DEFAULT 1,
             FOREIGN KEY (clientId) REFERENCES clients(id)
         );  
 
@@ -103,6 +104,12 @@ export function initDatabase() {
   try {
     db.execSync(
       `ALTER TABLE appointments ADD COLUMN paymentMethodDetails TEXT;`,
+    );
+  } catch (e) {}
+
+  try {
+    db.execSync(
+      `ALTER TABLE appointments ADD COLUMN isFacturado INTEGER NOT NULL DEFAULT 1;`,
     );
   } catch (e) {}
 

@@ -51,11 +51,12 @@ export function useAppointmentActions() {
     appointment: AppointmentWithDetails, 
     onRefresh?: () => void,
     paymentMethod?: string,
-    paymentMethodDetails?: string
+    paymentMethodDetails?: string,
+    isFacturado: boolean = true
   ) => {
     const newStatus = appointment.paymentStatus === "paid" ? "unpaid" : "paid";
     try {
-      await service.updatePaymentStatus(appointment.id, newStatus, paymentMethod, paymentMethodDetails);
+      await service.updatePaymentStatus(appointment.id, newStatus, paymentMethod, paymentMethodDetails, isFacturado);
       LayoutAnimation.configureNext(
         LayoutAnimation.Presets.easeInEaseOut,
       );

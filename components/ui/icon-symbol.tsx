@@ -35,6 +35,7 @@ const MAPPING = {
   "arrow.down.doc.fill": "settings-backup-restore",
   globe: "language",
   "chart.bar.fill": "bar-chart",
+  "doc.plaintext.fill": "description",
 } as IconMapping;
 
 /**

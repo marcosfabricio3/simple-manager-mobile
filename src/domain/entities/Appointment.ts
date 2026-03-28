@@ -18,6 +18,7 @@ export interface Appointment {
   notes?: string;
   seriesId: string;
   recurrence: RecurrenceType;
+  isFacturado: boolean; // Indicates if the appointment has been billed (Facturado)
 }
 
 // Extends the base Appointment for the UI to display the joined data cleanly

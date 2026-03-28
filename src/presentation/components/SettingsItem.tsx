@@ -12,7 +12,7 @@ import {
 } from "react-native";
 
 export interface SettingsItemProps {
-  icon: IconSymbolName;
+  icon?: IconSymbolName | "none";
   title: string;
   subtitle?: string;
   onPress?: () => void;
@@ -20,6 +20,8 @@ export interface SettingsItemProps {
   value?: boolean | string;
   onValueChange?: (value: boolean | string) => void;
   destructive?: boolean;
+  disabled?: boolean;
+  hideSeparator?: boolean;
 }
 
 export function SettingsItem({
@@ -31,6 +33,8 @@ export function SettingsItem({
   value,
   onValueChange,
   destructive = false,
+  disabled = false,
+  hideSeparator = false,
 }: SettingsItemProps) {
   const { darkMode } = useSettingsStore();
   const theme = darkMode ? "dark" : "light";
@@ -38,22 +42,25 @@ export function SettingsItem({
 
   const content = (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.iconContainer,
-          {
-            backgroundColor: destructive
-              ? colors.danger + "15"
-              : colors.primary + "10",
-          },
-        ]}
-      >
-        <IconSymbol
-          name={icon}
-          size={18}
-          color={destructive ? colors.danger : colors.primary}
-        />
-      </View>
+      {icon && icon !== "none" && (
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              backgroundColor: destructive
+                ? colors.danger + "15"
+                : colors.primary + "10",
+            },
+          ]}
+        >
+          <IconSymbol
+            name={icon as IconSymbolName}
+            size={18}
+            color={destructive ? colors.danger : colors.primary}
+          />
+        </View>
+      )}
+      {!icon || icon === "none" ? <View style={{ width: 10 }} /> : null}
       <View style={styles.textContainer}>
         <Text
           style={[
@@ -101,10 +108,15 @@ export function SettingsItem({
 
   return (
     <TouchableOpacity
-      disabled={type === "switch"}
+      disabled={disabled || type === "switch"}
       style={[
         styles.wrapper,
-        { backgroundColor: colors.card, borderBottomColor: colors.border },
+        { 
+          backgroundColor: colors.card, 
+          borderBottomColor: colors.border,
+          borderBottomWidth: hideSeparator ? 0 : StyleSheet.hairlineWidth,
+          opacity: disabled ? 0.4 : 1,
+        },
       ]}
       onPress={onPress}
     >
@@ -115,7 +127,7 @@ export function SettingsItem({
 
 const styles = StyleSheet.create({
   wrapper: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    // Moved dynamic border logic to style array in component
   },
   container: {
     flexDirection: "row",

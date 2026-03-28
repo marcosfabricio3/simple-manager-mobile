@@ -7,7 +7,7 @@ import {
 import { useAppointmentActions } from "@/src/presentation/hooks/useAppointmentActions";
 import { useI18n } from "@/src/presentation/translations/useI18n";
 import { Feather } from "@expo/vector-icons";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { PaymentMethodModal } from "./PaymentMethodModal";
 import React, { useState } from "react";
 
@@ -28,7 +28,7 @@ export function AppointmentCard({
   isPast,
 }: Props) {
   const { deleteAppointmentWithPrompt, togglePaymentStatus } = useAppointmentActions();
-  const { darkMode, language } = useSettingsStore();
+  const { darkMode, language, freeBillingEnabled, freeBillingPaymentMethods } = useSettingsStore();
   const { t } = useI18n();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
@@ -232,10 +232,14 @@ export function AppointmentCard({
               size={12} 
               color={appointment.paymentStatus === "paid" ? colors.success : colors.subtext} 
             />
-            <Text style={[
-              styles.paymentTagText, 
-              { color: appointment.paymentStatus === "paid" ? colors.success : colors.subtext }
-            ]}>
+            <Text 
+              style={[
+                styles.paymentTagText, 
+                { color: appointment.paymentStatus === "paid" ? colors.success : colors.subtext }
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {appointment.paymentStatus === "paid" ? t.appointments.paid : t.appointments.unpaid}
               {appointment.paymentStatus === "paid" && appointment.paymentMethod && (
                 <Text style={{ fontSize: 9 }}> • {t.appointments[`method_${appointment.paymentMethod}` as keyof typeof t.appointments] || appointment.paymentMethod}</Text>
@@ -287,7 +291,34 @@ export function AppointmentCard({
         visible={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onConfirm={(method, details) => {
-          togglePaymentStatus(appointment, onStatusUpdate, method, details);
+          const billingMethods = freeBillingPaymentMethods || [];
+          const needsBillingPrompt = freeBillingEnabled && billingMethods.includes(method);
+
+          if (needsBillingPrompt) {
+            Alert.alert(
+              t.common.isFacturado,
+              "",
+              [
+                {
+                  text: t.common.no,
+                  onPress: () => {
+                    togglePaymentStatus(appointment, onStatusUpdate, method, details, false);
+                    setShowPaymentModal(false);
+                  }
+                },
+                {
+                  text: t.common.yes,
+                  onPress: () => {
+                    togglePaymentStatus(appointment, onStatusUpdate, method, details, true);
+                    setShowPaymentModal(false);
+                  }
+                }
+              ]
+            );
+          } else {
+            togglePaymentStatus(appointment, onStatusUpdate, method, details, true);
+            setShowPaymentModal(false);
+          }
         }}
       />
     </View>
@@ -438,12 +469,14 @@ const styles = StyleSheet.create({
     gap: Spacing.s,
   },
   paymentTag: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingHorizontal: Spacing.s,
     paddingVertical: 2,
     borderRadius: 6,
+    maxWidth: '65%',
   },
   paymentTagText: {
     fontSize: 10,

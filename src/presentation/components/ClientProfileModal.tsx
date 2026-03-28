@@ -48,7 +48,7 @@ export function ClientProfileModal({
 }: ClientProfileModalProps) {
   const [metrics, setMetrics] = useState<ClientMetrics | null>(null);
   const [loading, setLoading] = useState(false);
-   const { darkMode, language } = useSettingsStore();
+  const { darkMode, language, freeBillingEnabled, freeBillingPaymentMethods } = useSettingsStore();
   const { t } = useI18n();
   const { services: allServices } = useServices();
 
@@ -85,12 +85,13 @@ export function ClientProfileModal({
     appointmentId: string,
     currentStatus: "paid" | "unpaid",
     paymentMethod?: string,
-    paymentMethodDetails?: string
+    paymentMethodDetails?: string,
+    isFacturado: boolean = true
   ) => {
     try {
       const newStatus = currentStatus === "paid" ? "unpaid" : "paid";
       const service = new AppointmentService();
-      await service.updatePaymentStatus(appointmentId, newStatus, paymentMethod, paymentMethodDetails);
+      await service.updatePaymentStatus(appointmentId, newStatus, paymentMethod, paymentMethodDetails, isFacturado);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       await loadMetrics(); // Refresh data
     } catch (e) {
@@ -658,7 +659,34 @@ export function ClientProfileModal({
           onClose={() => setPendingPaymentAppointment(null)}
           onConfirm={(method, details) => {
             if (pendingPaymentAppointment) {
-              handleTogglePayment(pendingPaymentAppointment.id, pendingPaymentAppointment.paymentStatus, method, details);
+              const billingMethods = freeBillingPaymentMethods || [];
+              const needsBillingPrompt = freeBillingEnabled && billingMethods.includes(method);
+
+              if (needsBillingPrompt) {
+                Alert.alert(
+                  t.common.isFacturado,
+                  "",
+                  [
+                    {
+                      text: t.common.no,
+                      onPress: () => {
+                        handleTogglePayment(pendingPaymentAppointment.id, pendingPaymentAppointment.paymentStatus, method, details, false);
+                        setPendingPaymentAppointment(null);
+                      }
+                    },
+                    {
+                      text: t.common.yes,
+                      onPress: () => {
+                        handleTogglePayment(pendingPaymentAppointment.id, pendingPaymentAppointment.paymentStatus, method, details, true);
+                        setPendingPaymentAppointment(null);
+                      }
+                    }
+                  ]
+                );
+              } else {
+                handleTogglePayment(pendingPaymentAppointment.id, pendingPaymentAppointment.paymentStatus, method, details, true);
+                setPendingPaymentAppointment(null);
+              }
             }
           }}
         />
