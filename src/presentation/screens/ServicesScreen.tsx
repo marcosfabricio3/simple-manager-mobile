@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 
 export default function ServicesScreen() {
@@ -87,6 +88,14 @@ export default function ServicesScreen() {
       } else {
         await create(cleanName, parsedPrice, cleanColor);
         addToast(t.services.createSuccess, "success");
+        
+        // Guided Tour: Step 1 -> 2
+        const { tutorialStep, updateSettings } = useSettingsStore.getState();
+        if (tutorialStep === 1) {
+          updateSettings({ tutorialStep: 2 });
+          const { router } = require("expo-router");
+          setTimeout(() => router.push("/(tabs)/clients"), 1500);
+        }
       }
       setName("");
       setDefaultPrice("");
@@ -143,7 +152,19 @@ export default function ServicesScreen() {
           <>
             <Text style={[styles.headerTitle, { color: colors.text }]}>
                 {t.services.title}
-              </Text>
+            </Text>
+
+            {useSettingsStore.getState().tutorialStep === 1 && (
+              <View 
+                style={[styles.tutorialBanner, { backgroundColor: colors.primary + "15", borderColor: colors.primary }]}
+              >
+                <MaterialIcons name="star" size={24} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.tutorialTitle, { color: colors.primary }]}>{t.onboarding.stepServiceTitle}</Text>
+                  <Text style={[styles.tutorialDesc, { color: colors.text }]}>{t.onboarding.stepServiceDesc}</Text>
+                </View>
+              </View>
+            )}
 
             <View
               style={[
@@ -239,7 +260,7 @@ export default function ServicesScreen() {
         }
         ListEmptyComponent={
           <EmptyState
-            iconName="list-alt"
+            iconName="list"
             title={t.services.emptyTitle}
             description={t.services.emptyDesc}
           />
@@ -333,5 +354,24 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     fontWeight: "700",
     fontSize: 15,
+  },
+  tutorialBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 24,
+    gap: 16,
+  },
+  tutorialTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  tutorialDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
   },
 });

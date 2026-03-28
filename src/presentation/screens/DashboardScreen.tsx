@@ -209,6 +209,21 @@ export default function DashboardScreen() {
               </View>
             </View>
 
+            {useSettingsStore.getState().tutorialStep === 3 && (
+              <TouchableOpacity 
+                activeOpacity={0.9}
+                onPress={() => router.push("/appointments/create" as any)}
+                style={[styles.tutorialBanner, { backgroundColor: colors.primary + "15", borderColor: colors.primary }]}
+              >
+                <Feather name="star" size={20} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.tutorialTitle, { color: colors.primary }]}>{t.onboarding.stepAppointmentTitle}</Text>
+                  <Text style={[styles.tutorialDesc, { color: colors.text }]}>{t.onboarding.stepAppointmentDesc}</Text>
+                </View>
+                <Feather name="arrow-right" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            )}
+
             <View style={styles.metricsGrid}>
               <View style={styles.row}>
                 <MetricCard
@@ -297,7 +312,9 @@ export default function DashboardScreen() {
           <AppointmentCard
             appointment={item}
             onEdit={(id) => router.push(`/appointments/edit?id=${id}` as any)}
-            onDelete={() => refresh()}
+            onDelete={async () => {
+              await refresh();
+            }}
             isPast={item.isPast}
             onStatusUpdate={refresh}
           />
@@ -423,5 +440,24 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "800",
+  },
+  tutorialBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 24,
+    gap: 16,
+  },
+  tutorialTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  tutorialDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
   },
 });

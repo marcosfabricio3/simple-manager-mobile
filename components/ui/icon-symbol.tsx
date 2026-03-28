@@ -36,6 +36,7 @@ const MAPPING = {
   globe: "language",
   "chart.bar.fill": "bar-chart",
   "doc.plaintext.fill": "description",
+  "play.circle.fill": "play-circle-filled",
 } as IconMapping;
 
 /**

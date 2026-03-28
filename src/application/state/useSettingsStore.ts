@@ -11,6 +11,7 @@ interface SettingsState {
   hasSeenOnboarding: boolean;
   freeBillingEnabled: boolean; // Whether the flexible billing mode is active
   freeBillingPaymentMethods: string[]; // List of payment methods that require manual billing choice
+  tutorialStep: number; // 0: none, 1: service, 2: client, 3: appointment
   updateSettings: (settings: Partial<SettingsState>) => void;
   setHasSeenOnboarding: () => void;
 }
@@ -38,6 +39,7 @@ export const useSettingsStore = create<SettingsState>()(
       hasSeenOnboarding: false,
       freeBillingEnabled: false,
       freeBillingPaymentMethods: [],
+      tutorialStep: 0,
       updateSettings: (settings) => set((state) => ({ ...state, ...settings })),
       setHasSeenOnboarding: () => set({ hasSeenOnboarding: true }),
     }),

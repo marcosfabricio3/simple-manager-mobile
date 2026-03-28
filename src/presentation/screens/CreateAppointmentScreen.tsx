@@ -139,6 +139,13 @@ export default function CreateAppointmentScreen() {
       );
 
       addToast(t.appointments.createSuccess, "success");
+
+      // Guided Tour: Step 3 -> 0 (Tutorial Ready)
+      const { tutorialStep, updateSettings } = useSettingsStore.getState();
+      if (tutorialStep === 3) {
+        updateSettings({ tutorialStep: 0 });
+      }
+
       if (router.canGoBack()) {
         router.back();
       } else {

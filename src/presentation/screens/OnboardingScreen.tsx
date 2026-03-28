@@ -32,7 +32,7 @@ const SLIDE_COLORS = ["#7C9CF5", "#A8DADC", "#34C759"];
 // OnboardingScreen
 // ---------------------------------------------------------------------------
 export default function OnboardingScreen() {
-  const { darkMode, setHasSeenOnboarding } = useSettingsStore();
+  const { darkMode, language, setHasSeenOnboarding, updateSettings } = useSettingsStore();
   const colors = Colors[darkMode ? "dark" : "light"];
   const { t } = useI18n();
   const ob = t.onboarding;
@@ -43,22 +43,32 @@ export default function OnboardingScreen() {
 
   const slides = [
     {
-      icon: SLIDE_ICONS[0],
-      color: SLIDE_COLORS[0],
-      title: ob.slide1Title,
-      subtitle: ob.slide1Subtitle,
+      id: "lang",
+      icon: "language" as any,
+      color: "#FF9F0A",
+      title: ob.title,
+      subtitle: ob.selectLanguage,
     },
     {
-      icon: SLIDE_ICONS[1],
-      color: SLIDE_COLORS[1],
-      title: ob.slide2Title,
-      subtitle: ob.slide2Subtitle,
+      id: "welcome",
+      icon: "waving-hand" as any,
+      color: "#007AFF",
+      title: ob.welcomeTitle,
+      subtitle: ob.welcomeSubtitle,
     },
     {
-      icon: SLIDE_ICONS[2],
-      color: SLIDE_COLORS[2],
-      title: ob.slide3Title,
-      subtitle: ob.slide3Subtitle,
+      id: "philosophy",
+      icon: "verified-user" as any,
+      color: "#34C759",
+      title: ob.philosophyTitle,
+      subtitle: ob.philosophySubtitle,
+    },
+    {
+      id: "tutorial",
+      icon: "school" as any,
+      color: "#5856D6",
+      title: ob.guidedTourTitle,
+      subtitle: ob.guidedTourSubtitle,
     },
   ];
 
@@ -96,11 +106,30 @@ export default function OnboardingScreen() {
   };
 
   const finish = () => {
-    setHasSeenOnboarding();
-    router.replace("/(tabs)");
+    updateSettings({ tutorialStep: 1, hasSeenOnboarding: true });
+    router.replace("/settings/services" as any);
   };
 
   const currentSlide = slides[activeIndex];
+
+  const renderLanguageSelector = () => (
+    <View style={styles.langContainer}>
+      <TouchableOpacity 
+        style={[styles.langBtn, language === 'es' && { borderColor: '#FF9F0A', borderWidth: 2 }]} 
+        onPress={() => updateSettings({ language: 'es' })}
+      >
+        <Text style={styles.langEmoji}>🇪🇸</Text>
+        <Text style={[styles.langText, { color: colors.text }]}>Español</Text>
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={[styles.langBtn, language === 'en' && { borderColor: '#FF9F0A', borderWidth: 2 }]} 
+        onPress={() => updateSettings({ language: 'en' })}
+      >
+        <Text style={styles.langEmoji}>🇺🇸</Text>
+        <Text style={[styles.langText, { color: colors.text }]}>English</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -143,6 +172,9 @@ export default function OnboardingScreen() {
         <Text style={[styles.subtitle, { color: colors.subtext }]}>
           {currentSlide.subtitle}
         </Text>
+
+        {/* Language selector for screen 0 */}
+        {currentSlide.id === "lang" && renderLanguageSelector()}
       </Animated.View>
 
       {/* Dots indicator */}
@@ -262,5 +294,28 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 17,
     fontWeight: "800",
+  },
+  langContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 32,
+    width: '100%',
+  },
+  langBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: 'rgba(124, 156, 245, 0.1)',
+    gap: 10,
+  },
+  langEmoji: {
+    fontSize: 24,
+  },
+  langText: {
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

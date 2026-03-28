@@ -306,7 +306,7 @@ export default function RecordsScreen() {
         ListEmptyComponent={
           <View style={{ paddingTop: 40 }}>
             <EmptyState
-              iconName="folder-open"
+              iconName="folder"
               title={tr.emptyTitle}
               description={tr.emptyDesc}
             />

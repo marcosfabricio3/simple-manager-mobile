@@ -72,6 +72,14 @@ export default function ClientsScreen() {
       } else {
         await create(cleanName, cleanPhone, cleanNotes);
         addToast(t.clients.createSuccess, "success");
+
+        // Guided Tour: Step 2 -> 3
+        const { tutorialStep, updateSettings } = useSettingsStore.getState();
+        if (tutorialStep === 2) {
+          updateSettings({ tutorialStep: 3 });
+          const { router } = require("expo-router");
+          setTimeout(() => router.push("/(tabs)"), 1500);
+        }
       }
       setName("");
       setPhone("");
@@ -159,6 +167,18 @@ export default function ClientsScreen() {
                 </Text>
               </View>
             </View>
+
+            {useSettingsStore.getState().tutorialStep === 2 && (
+              <View 
+                style={[styles.tutorialBanner, { backgroundColor: colors.primary + "15", borderColor: colors.primary }]}
+              >
+                <MaterialIcons name="star" size={24} color={colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.tutorialTitle, { color: colors.primary }]}>{t.onboarding.stepClientTitle}</Text>
+                  <Text style={[styles.tutorialDesc, { color: colors.text }]}>{t.onboarding.stepClientDesc}</Text>
+                </View>
+              </View>
+            )}
 
             <View
               style={[
@@ -296,7 +316,7 @@ export default function ClientsScreen() {
         }
         ListEmptyComponent={
           <EmptyState
-            iconName="contacts"
+            iconName="users"
             title={t.clients.emptyTitle}
             description={t.clients.emptyDesc}
           />
@@ -529,5 +549,24 @@ const styles = StyleSheet.create({
   },
   filterTabText: {
     fontSize: 13,
+  },
+  tutorialBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 24,
+    gap: 16,
+  },
+  tutorialTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  tutorialDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "600",
   },
 });

@@ -213,6 +213,16 @@ export default function SettingsScreen() {
             onPress={handleServicesNav}
           />
           <SettingsItem
+            icon="play.circle.fill"
+            title={t.settings.launchTutorial}
+            subtitle={t.settings.launchTutorialSubtitle}
+            type="action"
+            onPress={() => {
+              updateSettings({ tutorialStep: 1, hasSeenOnboarding: false });
+              router.replace("/onboarding" as any);
+            }}
+          />
+          <SettingsItem
             icon="doc.text.fill"
             title={t.settings.exportPdf}
             subtitle={t.settings.exportPdfSubtitle}
