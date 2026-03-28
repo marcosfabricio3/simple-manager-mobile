@@ -28,6 +28,8 @@ export interface MonthlyStats {
   completed: number;
   pending: number;
   cancelled: number;
+  billedCount: number;
+  unbilledCount: number;
   // Top services
   topServices: ServiceStat[];
   // Payment methods
@@ -48,6 +50,8 @@ const EMPTY_STATS: MonthlyStats = {
   completed: 0,
   pending: 0,
   cancelled: 0,
+  billedCount: 0,
+  unbilledCount: 0,
   topServices: [],
   paymentMethods: [],
   appointments: [],
@@ -99,6 +103,8 @@ export function useStatistics() {
         const cancelled = appointments.filter(
           (a) => a.status === "cancelled",
         ).length;
+        let billedCount = 0;
+        let unbilledCount = 0;
 
         // Revenue — only from paid+completed appointments
         let paidRevenue = 0;
@@ -118,8 +124,10 @@ export function useStatistics() {
             paidRevenue += apptTotal;
             if (appt.isFacturado) {
               paidFacturado += apptTotal;
+              billedCount++;
             } else {
               paidNoFacturado += apptTotal;
+              unbilledCount++;
             }
             const method = appt.paymentMethod || "unknown";
             const current = paymentMap.get(method) || { amount: 0, count: 0 };
@@ -177,6 +185,8 @@ export function useStatistics() {
           completed,
           pending,
           cancelled,
+          billedCount,
+          unbilledCount,
           topServices,
           paymentMethods,
           appointments: appointments.filter(a => a.status !== "cancelled" && new Date(a.date) <= new Date()),

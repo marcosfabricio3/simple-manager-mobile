@@ -446,6 +446,25 @@ export default function StatisticsScreen() {
                   color={colors.danger}
                   colors={colors}
                 />
+                {freeBillingEnabled && (
+                  <>
+                    <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 8 }} />
+                    <ProgressBar
+                      label={ts.billedCount}
+                      count={stats.billedCount}
+                      total={stats.completed}
+                      color={colors.primary}
+                      colors={colors}
+                    />
+                    <ProgressBar
+                      label={ts.unbilledCount}
+                      count={stats.unbilledCount}
+                      total={stats.completed}
+                      color={colors.secondary}
+                      colors={colors}
+                    />
+                  </>
+                )}
               </>
             )}
           </View>
