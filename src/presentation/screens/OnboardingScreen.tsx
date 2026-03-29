@@ -105,17 +105,15 @@ export default function OnboardingScreen() {
     }
   };
 
-  const finish = (skipTutorial = false) => {
-    // We update BOTH in a single call to ensure atomicity in SecureStore persistence
+  const finish = () => {
+    // 1. Set seen onboarding and start tutorial at step 1
     updateSettings({ 
-      tutorialStep: skipTutorial ? 0 : 1, 
+      tutorialStep: 1, 
       hasSeenOnboarding: true 
     });
     
-    // Safety check: logging to console for debug (user can check logs if it fails again)
-    console.log(`[Onboarding] Finished. SkipTutorial: ${skipTutorial}`);
-    
-    router.replace("/(tabs)" as any);
+    // 2. Clear stack and move to main app
+    router.replace("/(tabs)");
   };
 
   const currentSlide = slides[activeIndex];
@@ -143,12 +141,6 @@ export default function OnboardingScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
 
-      {/* Skip button (Now sets tutorialStep to 0) */}
-      <TouchableOpacity style={styles.skipBtn} onPress={() => finish(true)}>
-        <Text style={[styles.skipText, { color: colors.subtext }]}>
-          {ob.skip}
-        </Text>
-      </TouchableOpacity>
 
       {/* Slide content (animated) */}
       <Animated.View style={[styles.slideContent, { opacity: fadeAnim }]}>
