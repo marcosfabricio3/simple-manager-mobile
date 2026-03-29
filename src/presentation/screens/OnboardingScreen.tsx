@@ -106,11 +106,16 @@ export default function OnboardingScreen() {
   };
 
   const finish = (skipTutorial = false) => {
+    // We update BOTH in a single call to ensure atomicity in SecureStore persistence
     updateSettings({ 
       tutorialStep: skipTutorial ? 0 : 1, 
       hasSeenOnboarding: true 
     });
-    router.replace("/settings/services" as any);
+    
+    // Safety check: logging to console for debug (user can check logs if it fails again)
+    console.log(`[Onboarding] Finished. SkipTutorial: ${skipTutorial}`);
+    
+    router.replace("/(tabs)" as any);
   };
 
   const currentSlide = slides[activeIndex];
