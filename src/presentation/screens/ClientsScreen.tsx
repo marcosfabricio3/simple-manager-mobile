@@ -25,7 +25,7 @@ import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 
 export default function ClientsScreen() {
   const { clients, create, remove, update, load } = useClients();
-  const { darkMode } = useSettingsStore();
+  const { darkMode, language, tutorialStep } = useSettingsStore();
   const { t } = useI18n();
   const paddingTop = useSafeTopPadding();
 
@@ -168,7 +168,7 @@ export default function ClientsScreen() {
               </View>
             </View>
 
-            {useSettingsStore.getState().tutorialStep === 2 && (
+            {tutorialStep === 2 && (
               <View 
                 style={[styles.tutorialBanner, { backgroundColor: colors.primary + "15", borderColor: colors.primary }]}
               >

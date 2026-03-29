@@ -24,7 +24,7 @@ import { useSafeTopPadding } from "@/src/presentation/hooks/useSafeTopPadding";
 
 export default function ServicesScreen() {
   const { services, create, remove, update } = useServices();
-  const { darkMode } = useSettingsStore();
+  const { darkMode, tutorialStep } = useSettingsStore();
   const { t } = useI18n();
   const paddingTop = useSafeTopPadding();
 
@@ -154,7 +154,7 @@ export default function ServicesScreen() {
                 {t.services.title}
             </Text>
 
-            {useSettingsStore.getState().tutorialStep === 1 && (
+            {tutorialStep === 1 && (
               <View 
                 style={[styles.tutorialBanner, { backgroundColor: colors.primary + "15", borderColor: colors.primary }]}
               >

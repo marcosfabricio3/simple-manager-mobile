@@ -18,7 +18,7 @@ export default function DashboardScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeFilter, setActiveFilter] = useState<"none" | "pending" | "cancelled" | "next">("none");
   const { todayAppointments, loading, refresh } = useDashboard(selectedDate);
-  const { darkMode, language } = useSettingsStore();
+  const { darkMode, language, tutorialStep } = useSettingsStore();
   const { t } = useI18n();
   const paddingTop = useSafeTopPadding();
   const router = useRouter();
@@ -209,7 +209,7 @@ export default function DashboardScreen() {
               </View>
             </View>
 
-            {useSettingsStore.getState().tutorialStep === 3 && (
+            {tutorialStep === 3 && (
               <TouchableOpacity 
                 activeOpacity={0.9}
                 onPress={() => router.push("/appointments/create" as any)}
