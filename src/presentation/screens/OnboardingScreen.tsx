@@ -112,8 +112,8 @@ export default function OnboardingScreen() {
       hasSeenOnboarding: true 
     });
     
-    // 2. Clear stack and move to main app
-    router.replace("/(tabs)");
+    // 2. Guide user to create their first service
+    router.replace("/settings/services" as any);
   };
 
   const currentSlide = slides[activeIndex];
