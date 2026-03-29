@@ -1,5 +1,5 @@
 import { encryptionService } from "@/src/application/services/EncryptionService";
-import { db } from "@/src/infrastructure/database/database";
+import { db, reinitializeDatabase } from "@/src/infrastructure/database/database";
 import {
   Language,
   translations,
@@ -7,6 +7,7 @@ import {
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import * as Crypto from "expo-crypto";
 import CryptoJS from "crypto-js";
 import { Alert, BackHandler, Platform } from "react-native";
 
@@ -80,8 +81,9 @@ export class DatabaseBackupService {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // 1. Generate random salt
-      const salt = CryptoJS.lib.WordArray.random(128 / 8).toString(CryptoJS.enc.Base64);
+      // 1. Generate random salt using expo-crypto (stable entropy source)
+      const saltBytes = await Crypto.getRandomBytesAsync(16);
+      const salt = CryptoJS.lib.WordArray.create(saltBytes as any).toString(CryptoJS.enc.Base64);
       
       // 2. Derive KEK
       const kek = this.deriveKek(passphrase, salt);
@@ -90,7 +92,8 @@ export class DatabaseBackupService {
       const rawKeyBase64 = await encryptionService.exportRawMasterKey();
       
       // Encrypt the master key using AES
-      const iv = CryptoJS.lib.WordArray.random(128 / 8);
+      const ivBytes = await Crypto.getRandomBytesAsync(16);
+      const iv = CryptoJS.lib.WordArray.create(ivBytes as any);
       const encrypted = CryptoJS.AES.encrypt(rawKeyBase64, kek, {
         iv: iv,
         mode: CryptoJS.mode.CBC,
@@ -186,9 +189,7 @@ export class DatabaseBackupService {
       }
 
       // 3. Restore DB
-      try {
-        db.closeSync();
-      } catch {}
+      reinitializeDatabase(); // Closes AND reopens the reference
 
       // @ts-ignore
       const dbDirectory = `${FileSystem.documentDirectory}SQLite`;

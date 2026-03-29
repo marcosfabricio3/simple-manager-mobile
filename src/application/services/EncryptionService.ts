@@ -35,11 +35,23 @@ export class EncryptionService {
     if (!text) return text;
 
     try {
-      const key = await this.getMasterKey();
+      const keyB64 = await this.getMasterKey();
+      const key = CryptoJS.enc.Base64.parse(keyB64);
       
+      // Generate a manual IV to avoid CryptoJS calling the unstable native random module
+      const ivBytes = await Crypto.getRandomBytesAsync(16);
+      const iv = CryptoJS.lib.WordArray.create(ivBytes as any);
+
       // Use CryptoJS for stable cross-platform encryption
-      const encrypted = CryptoJS.AES.encrypt(text, key);
-      return `${ENC_VERSION_V2}${encrypted.toString()}`;
+      // Manually specifying IV AND disabling OpenSSL-style KDF (which uses internal random)
+      const encrypted = CryptoJS.AES.encrypt(text, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7
+      });
+
+      // We store the IV along with the ciphertext
+      return `${ENC_VERSION_V2}${iv.toString(CryptoJS.enc.Base64)}.${encrypted.toString()}`;
     } catch (e) {
       console.error("[EncryptionService] encrypt failed:", e);
       return text;
@@ -62,10 +74,26 @@ export class EncryptionService {
     // Handle V2 (CryptoJS)
     if (encryptedText.startsWith(ENC_VERSION_V2)) {
       try {
-        const key = await this.getMasterKey();
-        const ciphertext = encryptedText.substring(ENC_VERSION_V2.length);
-        const decrypted = CryptoJS.AES.decrypt(ciphertext, key);
-        return decrypted.toString(CryptoJS.enc.Utf8);
+        const keyB64 = await this.getMasterKey();
+        const key = CryptoJS.enc.Base64.parse(keyB64);
+        
+        const payload = encryptedText.substring(ENC_VERSION_V2.length);
+        
+        const dotIdx = payload.indexOf(".");
+        if (dotIdx === -1) throw new Error("Invalid v2 format");
+
+        const ivB64 = payload.substring(0, dotIdx);
+        const ciphertext = payload.substring(dotIdx + 1);
+
+        const decrypted = CryptoJS.AES.decrypt(ciphertext, key, {
+          iv: CryptoJS.enc.Base64.parse(ivB64),
+          mode: CryptoJS.mode.CBC,
+          padding: CryptoJS.pad.Pkcs7
+        });
+        
+        const result = decrypted.toString(CryptoJS.enc.Utf8);
+        if (!result) throw new Error("Decryption result is empty");
+        return result;
       } catch (e) {
         console.error("[EncryptionService] decrypt failed:", e);
         return encryptedText;
