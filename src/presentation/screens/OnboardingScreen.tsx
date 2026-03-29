@@ -105,8 +105,11 @@ export default function OnboardingScreen() {
     }
   };
 
-  const finish = () => {
-    updateSettings({ tutorialStep: 1, hasSeenOnboarding: true });
+  const finish = (skipTutorial = false) => {
+    updateSettings({ 
+      tutorialStep: skipTutorial ? 0 : 1, 
+      hasSeenOnboarding: true 
+    });
     router.replace("/settings/services" as any);
   };
 
@@ -135,8 +138,8 @@ export default function OnboardingScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
 
-      {/* Skip button */}
-      <TouchableOpacity style={styles.skipBtn} onPress={finish}>
+      {/* Skip button (Now sets tutorialStep to 0) */}
+      <TouchableOpacity style={styles.skipBtn} onPress={() => finish(true)}>
         <Text style={[styles.skipText, { color: colors.subtext }]}>
           {ob.skip}
         </Text>
@@ -288,7 +291,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 56,
     borderRadius: 16,
-    marginBottom: 48,
+    marginBottom: 64, // Raised from 48 to avoid system bar overlap
   },
   ctaBtnText: {
     color: "#fff",

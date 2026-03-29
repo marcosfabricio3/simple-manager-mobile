@@ -17,7 +17,7 @@ export default function TabLayout() {
   // On Android with edge-to-edge, we must account for the system navigation bar.
   // We use the actual inset if available, or a sensible fallback.
   const bottomPad = Platform.OS === "android" 
-    ? Math.max(insets.bottom, 20) 
+    ? Math.max(insets.bottom, 26) // Raised from 20 to ~26 for 6px lift
     : (insets.bottom || 12);
 
   return (
@@ -32,7 +32,7 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
-          height: 70 + (Platform.OS === "android" ? Math.max(insets.bottom - 10, 0) : 0),
+          height: 76 + (Platform.OS === "android" ? Math.max(insets.bottom - 10, 0) : 0), // Raised from 70 to 76
           paddingBottom: bottomPad,
           paddingTop: 10,
           // Removed absolute positioning as it can cause content to overlap 
